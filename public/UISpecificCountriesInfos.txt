@@ -1,0 +1,222 @@
+// Ne pas éditer, ce fichier est généré par UICountriesInfosFileWriter
+
+
+unnamed TUISpecificCountriesInfos
+(
+    CountriesInfos = MAP
+    [
+        ("SOV", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_SOV"
+                Country = "SOV"
+                NameToken = "CtrSOV"
+                Coalition = ECoalition/PACT
+            )
+        ),
+        ("US", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_US"
+                Country = "US"
+                NameToken = "CtrUS"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("ROK", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_ROK"
+                Country = "ROK"
+                NameToken = "CtrROK"
+                Coalition = ECoalition/PACT
+            )
+        ),
+        ("DDR", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_DDR"
+                Country = "DDR"
+                NameToken = "CtrDDR"
+                Coalition = ECoalition/PACT
+            )
+        ),
+        ("UK", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_UK"
+                Country = "UK"
+                NameToken = "CtrUK"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("POL", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_POL"
+                Country = "POL"
+                NameToken = "CtrPOL"
+                Coalition = ECoalition/PACT
+            )
+        ),
+        ("RFA", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_RFA"
+                Country = "RFA"
+                NameToken = "CtrRFA"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("FR", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_FR"
+                Country = "FR"
+                NameToken = "CtrFR"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("TCH", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_TCH"
+                Country = "TCH"
+                NameToken = "CtrTCH"
+                Coalition = ECoalition/PACT
+            )
+        ),
+        ("NL", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_NL"
+                Country = "NL"
+                NameToken = "CtrNL"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("CAN", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_CAN"
+                Country = "CAN"
+                NameToken = "CtrCAN"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("BEL", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_BEL"
+                Country = "BEL"
+                NameToken = "CtrBEL"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("ESP", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_ESP"
+                Country = "ESP"
+                NameToken = "CtrESP"
+                Coalition = ECoalition/NATO
+            )
+        ),
+        ("LUX", TUISpecificCountryInfos
+            (
+                FlagTexture = "CommonTexture_MotherCountryFlag_LUX"
+                Country = "LUX"
+                NameToken = "CtrLUX"
+                Coalition = ECoalition/NATO
+            )
+        ),
+    ]
+)
+
+//-----------------------------------------------
+
+unnamed TBUCKToolAdditionalTextureBank
+(
+    Textures = MAP
+    [
+        ("CommonTexture_MotherCountryFlag_BEL",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/BEL_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_CAN",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/CAN_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_ESP",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/ESP_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_FR",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/FR_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_UK",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/UK_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_NL",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/NL_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_POL",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/POL_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_ROK",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/Flag_of_North_Korea.png"))]),
+        ("CommonTexture_MotherCountryFlag_DDR",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/DDR_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_RFA",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/RFA_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_SOV",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/SOV_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_TCH",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/TCH_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_US",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/US_FLAG.png"))]),
+        ("CommonTexture_MotherCountryFlag_LUX",  MAP [(~/ComponentState/Normal, TUIResourceTexture_Common(FileName = "GameData:/Assets/2D/Interface/Common/Flags/LUX_FLAG.png"))]),
+    ]
+)
+
+//-----------------------------------------------
+
+CountriesTextFormatScriptMap is MAP
+[
+    (
+        "BEL",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_BEL")
+    ),
+    (
+        "CAN",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_CAN")
+    ),
+    (
+        "ESP",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_ESP")
+    ),
+    (
+        "FR",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_FR")
+    ),
+    (
+        "UK",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_UK")
+    ),
+    (
+        "NL",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_NL")
+    ),
+    (
+        "POL",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_POL")
+    ),
+    (
+        "ROK",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_ROK")
+    ),
+    (
+        "DDR",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_DDR")
+    ),
+    (
+        "RFA",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_RFA")
+    ),
+    (
+        "SOV",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_SOV")
+    ),
+    (
+        "TCH",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_TCH")
+    ),
+    (
+        "US",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_US")
+    ),
+    (
+        "LUX",
+        TemplateTFS_Flag(TextureToken = "CommonTexture_MotherCountryFlag_LUX")
+    ),
+]
+
+//-----------------------------------------------
+
+// Add to default bank
+unnamed TTextFormatScript
+(
+    TextFormatScriptBank = $/UI/TextFormatScript/DefaultTextFormatScriptBank
+    Commands = ~/CountriesTextFormatScriptMap
+)
+
+// Add to chat bank
+unnamed TTextFormatScript
+(
+    TextFormatScriptBank = $/UI/TextFormatScript/ChaTTextFormatScriptBank
+    Commands = ~/CountriesTextFormatScriptMap
+)
