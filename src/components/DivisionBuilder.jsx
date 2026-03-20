@@ -1,3 +1,11 @@
+import { useMemo } from "react";
+import CountryBuilder from "./CountryBuilder";
+import JSZip from "jszip";
+import {
+  parseCountriesInfoEntries,
+  applyNewCountryToUiSpecificCountriesFile,
+} from "../generators/country";
+
 const categories = ["log", "inf", "art", "tnk", "rec", "aa", "hel", "air"];
 
 export default function DivisionBuilder({
@@ -7,6 +15,18 @@ export default function DivisionBuilder({
   setShowCountryEditor,
 }) {
   const division = project.division;
+
+  const parsedCountries = useMemo(() => {
+    const text = project.files.uiSpecificCountriesText;
+    if (!text) return [];
+
+    try {
+      return parseCountriesInfoEntries(text);
+    } catch (error) {
+      console.error("Failed to parse countries:", error);
+      return [];
+    }
+  }, [project.files.uiSpecificCountriesText]);
 
   function updateDivisionField(field, value) {
     setProject((prev) => ({
@@ -25,6 +45,89 @@ export default function DivisionBuilder({
     }
 
     updateDivisionField("countryId", value);
+  }
+
+  async function handleExportDivision() {
+    try {
+      const zip = new JSZip();
+      const modName = project.meta.modName || "sampleMod";
+      const root = zip.folder(modName);
+
+      if (!root) {
+        throw new Error("Failed to create mod root folder.");
+      }
+
+      // Start from the base template text
+      let uiSpecificCountriesText = project.files.uiSpecificCountriesText;
+
+      // Combine all custom country changes into one final UISpecificCountriesInfos file
+      for (const customCountry of project.customCountries) {
+        uiSpecificCountriesText = applyNewCountryToUiSpecificCountriesFile(
+          uiSpecificCountriesText,
+          customCountry.generated,
+        );
+      }
+
+      // 1. Export merged UISpecificCountriesInfos.ndf
+      root.file(
+        "GameData/Generated/UserInterface/UISpecificCountriesInfos.ndf",
+        uiSpecificCountriesText,
+      );
+
+      // 2. Export UnitNames files for each custom country
+      for (const customCountry of project.customCountries) {
+        root.file(
+          `GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_${customCountry.countryTag}.NDF`,
+          customCountry.generated.unitNamesFile,
+        );
+      }
+
+      // 3. Export one INTERFACE_OUTGAME.csv containing all custom country rows
+      let interfaceCsv = `"TOKEN";"REFTEXT"\n`;
+
+      for (const customCountry of project.customCountries) {
+        interfaceCsv += `"${customCountry.nameToken}";"${customCountry.countryName}"\n`;
+      }
+
+      root.file(
+        `GameData/Localisation/${modName}/INTERFACE_OUTGAME.csv`,
+        interfaceCsv,
+      );
+
+      // 4. Export custom flag PNGs
+      for (const customCountry of project.customCountries) {
+        if (customCountry.useCustomFlag && customCountry.flagFile) {
+          root.file(
+            `GameData/Assets/2D/Interface/Common/Flags/${customCountry.generated.flagFileName}`,
+            customCountry.flagFile,
+          );
+        }
+      }
+
+      // 5. Optional README for debugging / proof of concept
+      root.file(
+        "README.txt",
+        [
+          "WARNO Division Builder Export",
+          `Mod Name: ${modName}`,
+          `Custom Countries: ${project.customCountries.length}`,
+          `Selected Division Country: ${project.division.countryId || "(none)"}`,
+        ].join("\n"),
+      );
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `${modName}_division_export.zip`;
+      link.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(`Export failed: ${error.message}`);
+      console.error(error);
+    }
   }
 
   return (
@@ -54,18 +157,21 @@ export default function DivisionBuilder({
             >
               <option value="">Select country</option>
 
-              {/* existing countries from base file would go here */}
-              <option value="BEL">BEL</option>
-              <option value="USA">USA</option>
+              {parsedCountries.map((country) => (
+                <option key={country.tag} value={country.tag}>
+                  {country.tag} ({country.coalition})
+                </option>
+              ))}
 
-              {/* custom countries created in-project */}
               {project.customCountries.map((country) => (
                 <option key={country.countryTag} value={country.countryTag}>
                   {country.countryTag} (custom)
                 </option>
               ))}
 
-              <option value="__ADD_CUSTOM_COUNTRY__">+ Add Custom Country</option>
+              <option value="__ADD_CUSTOM_COUNTRY__">
+                + Add Custom Country
+              </option>
             </select>
           </div>
 
@@ -73,7 +179,9 @@ export default function DivisionBuilder({
             <label style={styles.label}>Division Name</label>
             <input
               value={division.divisionName}
-              onChange={(e) => updateDivisionField("divisionName", e.target.value)}
+              onChange={(e) =>
+                updateDivisionField("divisionName", e.target.value)
+              }
               style={styles.input}
               placeholder="Division name"
             />
@@ -92,7 +200,13 @@ export default function DivisionBuilder({
           </div>
 
           <div style={styles.exportBox}>
-            <button style={styles.exportButton}>Export Division</button>
+            <button
+              type="button"
+              style={styles.exportButton}
+              onClick={handleExportDivision}
+            >
+              Export Division
+            </button>
           </div>
         </div>
 
@@ -108,7 +222,9 @@ export default function DivisionBuilder({
                 </div>
               ))}
 
-              <button style={styles.addButton}>+</button>
+              <button type="button" style={styles.addButton}>
+                +
+              </button>
             </div>
           ))}
         </div>
@@ -116,9 +232,22 @@ export default function DivisionBuilder({
         {showCountryEditor && (
           <div style={styles.modal}>
             <div style={styles.modalCard}>
-              <h2>Add Custom Country</h2>
-              <p>Country editor goes here next.</p>
-              <button onClick={() => setShowCountryEditor(false)}>Close</button>
+              <CountryBuilder
+                uiSpecificCountriesText={project.files.uiSpecificCountriesText}
+                onCancel={() => setShowCountryEditor(false)}
+                onSave={(customCountry) => {
+                  setProject((prev) => ({
+                    ...prev,
+                    customCountries: [...prev.customCountries, customCountry],
+                    division: {
+                      ...prev.division,
+                      countryId: customCountry.countryTag,
+                    },
+                  }));
+
+                  setShowCountryEditor(false);
+                }}
+              />
             </div>
           </div>
         )}
