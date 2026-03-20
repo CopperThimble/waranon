@@ -46,6 +46,8 @@ export default function App() {
    * Builds the mod folder structure and downloads it as a zip
    */
   async function handleExport() {
+
+    //validate on export
     const validation = validateNewCountryData({
       fileText: existingText,
       newCountryTag: newTag,
@@ -196,30 +198,47 @@ export default function App() {
    * Generate preview output whenever inputs change
    */
   useEffect(() => {
-    if (!existingText || !baseCountry) return;
+  if (!existingText || !baseCountry) return;
 
-    try {
-      const generated = generateNewCountryData({
-        fileText: existingText,
-        baseCountryTag: baseCountry,
-        newCountryTag: newTag,
-        newCountryName: newName,
-        unitToken: "NAMES_ABCD",
-        useCustomFlag,
-        customFlagFileName: customFlagFile ? customFlagFile.name : null,
-        addTextFormatEntry: true,
-      });
+  try {
+    const validation = validateNewCountryData({
+      fileText: existingText,
+      newCountryTag: newTag,
+      newCountryName: newName,
+      unitToken: "NAMES_ABCD",
+      useCustomFlag,
+      customFlagFileName: customFlagFile ? customFlagFile.name : null,
+    });
 
-      const updatedText = applyNewCountryToUiSpecificCountriesFile(
-        existingText,
-        generated,
-      );
+    setValidationErrors(validation.errors);
+    setValidationWarnings(validation.warnings);
 
-      setOutput(updatedText);
-    } catch (error) {
-      setOutput(`Error: ${error.message}`);
+    if (!validation.isValid) {
+      setOutput("Validation failed. See errors above.");
+      return;
     }
-  }, [existingText, baseCountry, newTag, newName]);
+
+    const generated = generateNewCountryData({
+      fileText: existingText,
+      baseCountryTag: baseCountry,
+      newCountryTag: newTag,
+      newCountryName: newName,
+      unitToken: "NAMES_ABCD",
+      useCustomFlag,
+      customFlagFileName: customFlagFile ? customFlagFile.name : null,
+      addTextFormatEntry: true,
+    });
+
+    const updatedText = applyNewCountryToUiSpecificCountriesFile(
+      existingText,
+      generated
+    );
+
+    setOutput(updatedText);
+  } catch (error) {
+    setOutput(`Error: ${error.message}`);
+  }
+}, [existingText, baseCountry, newTag, newName, useCustomFlag, customFlagFile]);
 
   useEffect(() => {
     if (!customFlagFile) {
@@ -329,7 +348,43 @@ export default function App() {
           />
         </div>
       </div>
+{validationErrors.length > 0 && (
+  <div
+    style={{
+      background: "#fee2e2",
+      border: "1px solid #ef4444",
+      padding: 12,
+      marginBottom: 12,
+      color: "#991b1b",
+    }}
+  >
+    <strong>Errors:</strong>
+    <ul style={{ margin: "8px 0 0 20px" }}>
+      {validationErrors.map((error, index) => (
+        <li key={index}>{error}</li>
+      ))}
+    </ul>
+  </div>
+)}
 
+{validationWarnings.length > 0 && (
+  <div
+    style={{
+      background: "#fef3c7",
+      border: "1px solid #f59e0b",
+      padding: 12,
+      marginBottom: 12,
+      color: "#92400e",
+    }}
+  >
+    <strong>Warnings:</strong>
+    <ul style={{ margin: "8px 0 0 20px" }}>
+      {validationWarnings.map((warning, index) => (
+        <li key={index}>{warning}</li>
+      ))}
+    </ul>
+  </div>
+)}
       {/* Export button */}
       <button
         onClick={handleExport}
