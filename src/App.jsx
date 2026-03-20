@@ -13,9 +13,16 @@ export default function App() {
   const [baseCountry, setBaseCountry] = useState("BEL");
   const [newTag, setNewTag] = useState("SWE");
   const [newName, setNewName] = useState("Sweden");
+  const [customFlagFile, setCustomFlagFile] = useState(null);
+  const [useCustomFlag, setUseCustomFlag] = useState(false);
 
   async function handleExport() {
-  if (!existingText) {
+    
+  if (useCustomFlag && !customFlagFile) {
+  alert("Please select a PNG file for the custom flag.");
+  return;
+}
+    if (!existingText) {
     alert("File not loaded yet!");
     return;
   }
@@ -69,11 +76,23 @@ export default function App() {
     link.href = url;
     link.download = `${modName}_${generated.countryTag}.zip`;
     link.click();
-
+if (useCustomFlag && customFlagFile) {
+  root.file(
+    `Assets/2D/Interface/Common/Flags/${generated.flagFileName}`,
+    customFlagFile
+  );
+}
     URL.revokeObjectURL(url);
   } catch (error) {
     alert("Export failed: " + error.message);
   }
+
+  if (useCustomFlag && customFlagFile) {
+  root.file(
+    `Assets/2D/Interface/Common/Flags/${generated.flagFileName}`,
+    customFlagFile
+  );
+}
 }
 
   useEffect(() => {
@@ -126,7 +145,33 @@ export default function App() {
   return (
     <div style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>
       <h1>WARNO Test</h1>
+      <div>
+  <label>
+    <input
+      type="checkbox"
+      checked={useCustomFlag}
+      onChange={(e) => setUseCustomFlag(e.target.checked)}
+      style={{ marginRight: 8 }}
+    />
+    Use custom flag PNG
+  </label>
+</div>
 
+{useCustomFlag && (
+  <div>
+    <label>Flag PNG</label>
+    <br />
+    <input
+      type="file"
+      accept=".png,image/png"
+      onChange={(e) => {
+        const file = e.target.files?.[0] || null;
+        setCustomFlagFile(file);
+      }}
+      style={{ marginTop: 4 }}
+    />
+  </div>
+)}
       <div style={{ display: "grid", gap: 12, maxWidth: 500, marginBottom: 20 }}>
         <div>
           <label>Base Country</label>
