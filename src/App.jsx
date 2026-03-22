@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DivisionBuilder from "./components/DivisionBuilder";
+import uiSpecificCountriesText from "./templates/UISpecificCountriesInfos.txt?raw";
+import divisionsText from "./templates/Divisions.txt?raw";
 
 function createEmptyProject() {
   return {
@@ -46,8 +48,8 @@ function createEmptyProject() {
     customWeapons: [],
     customAmmo: [],
     files: {
-      uiSpecificCountriesText: "",
-      divisionsText: "",
+      uiSpecificCountriesText,
+      divisionsText,
       deckSerializerText: "",
     },
     validation: {
@@ -60,35 +62,6 @@ function createEmptyProject() {
 export default function App() {
   const [project, setProject] = useState(createEmptyProject());
   const [showCountryEditor, setShowCountryEditor] = useState(false);
-
-  useEffect(() => {
-    async function loadFiles() {
-      try {
-        const [uiCountriesRes, divisionsRes] = await Promise.all([
-              fetch(`${import.meta.env.BASE_URL}UISpecificCountriesInfos.txt`),
-              fetch(`${import.meta.env.BASE_URL}Divisions.txt`),
-        ]);
-
-        const [uiSpecificCountriesText, divisionsText] = await Promise.all([
-          uiCountriesRes.text(),
-          divisionsRes.text(),
-        ]);
-
-        setProject((prev) => ({
-          ...prev,
-          files: {
-            ...prev.files,
-            uiSpecificCountriesText,
-            divisionsText,
-          },
-        }));
-      } catch (error) {
-        console.error("Failed to load template files:", error);
-      }
-    }
-
-    loadFiles();
-  }, []);
 
   return (
     <DivisionBuilder
