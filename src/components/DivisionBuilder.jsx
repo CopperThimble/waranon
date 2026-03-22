@@ -6,6 +6,7 @@ import {
   parseCountriesInfoEntries,
   applyNewCountryToUiSpecificCountriesFile,
 } from "../generators/country";
+import { parseDivisionEntries } from "../generators/divisions";
 
 const categories = ["log", "inf", "art", "tnk", "rec", "aa", "hel", "air"];
 
@@ -29,6 +30,27 @@ export default function DivisionBuilder({
     }
   }, [project.files.uiSpecificCountriesText]);
 
+  //parse divisions and filter divisions
+  const parsedDivisions = useMemo(() => {
+    const text = project.files.divisionsText;
+    if (!text) return [];
+
+    try {
+      return parseDivisionEntries(text);
+    } catch (error) {
+      console.error("Failed to parse divisions:", error);
+      return [];
+    }
+  }, [project.files.divisionsText]);
+
+  const filteredDivisions = useMemo(() => {
+    if (!division.countryId) return [];
+
+    return parsedDivisions.filter(
+      (entry) => entry.countryId === division.countryId,
+    );
+  }, [parsedDivisions, division.countryId]);
+
   function updateDivisionField(field, value) {
     setProject((prev) => ({
       ...prev,
@@ -45,25 +67,32 @@ export default function DivisionBuilder({
       return;
     }
 
-    updateDivisionField("countryId", value);
+    setProject((prev) => ({
+      ...prev,
+      division: {
+        ...prev.division,
+        countryId: value,
+        divisionId: "",
+      },
+    }));
   }
 
   async function handleExport() {
-  try {
-    const blob = await exportMod(project);
+    try {
+      const blob = await exportMod(project);
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
 
-    link.href = url;
-    link.download = `${project.meta?.modName || "mod"}.zip`;
-    link.click();
+      link.href = url;
+      link.download = `${project.meta?.modName || "mod"}.zip`;
+      link.click();
 
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    alert(err.message);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message);
+    }
   }
-}
 
   return (
     <div style={styles.page}>
@@ -111,15 +140,27 @@ export default function DivisionBuilder({
           </div>
 
           <div style={styles.fieldBox}>
-            <label style={styles.label}>Division Name</label>
-            <input
-              value={division.divisionName}
+            <label style={styles.label}>Base Division</label>
+            <select
+              value={division.divisionId || ""}
               onChange={(e) =>
-                updateDivisionField("divisionName", e.target.value)
+                updateDivisionField("divisionId", e.target.value)
               }
-              style={styles.input}
-              placeholder="Division name"
-            />
+              style={styles.select}
+              disabled={!division.countryId}
+            >
+              <option value="">
+                {division.countryId
+                  ? "Select division"
+                  : "Select country first"}
+              </option>
+
+              {filteredDivisions.map((baseDivision) => (
+                <option key={baseDivision.id} value={baseDivision.id}>
+                  {baseDivision.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={styles.fieldBox}>
