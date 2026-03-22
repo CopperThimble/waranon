@@ -6,9 +6,9 @@ WARNO mod webapp for building/exporting mod files.
 ## Stack
 - React
 - Vite
-- GitHub Pages
+- GitHub Pages (https://copperthimble.github.io/waranon/)
 - JSZip
-- Zustand planned for state persistence
+- Zustand planned for state persistence (TBD)
 
 ## Current Features
 - Country parser populates dropdown
@@ -26,11 +26,6 @@ WARNO mod webapp for building/exporting mod files.
 - Use parsed countries for dropdown
 - Keep export functionality
 - Likely move to Zustand + persist for project state
-
-## Current Problems
-- Context gets lost across chats
-- Risk of duplicating builds
-- Local copy may drift from GitHub edits
 
 ## Next Steps
 1. Improve state management with Zustand persist
