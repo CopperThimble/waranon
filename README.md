@@ -1,3 +1,42 @@
+# Project Summary
+
+## App
+WARNO mod webapp for building/exporting mod files.
+
+## Stack
+- React
+- Vite
+- GitHub Pages
+- JSZip
+- Zustand planned for state persistence
+
+## Current Features
+- Country parser populates dropdown
+- Add custom country flow
+- Flag display/adding option
+- Export functionality using exportMod.js
+- Generates UISpecificCountriesInfos.ndf updates
+
+## Important Files
+- src/App.jsx
+- src/export/exportMod.js
+- src/generators/country.js
+
+## Decisions Made
+- Use parsed countries for dropdown
+- Keep export functionality
+- Likely move to Zustand + persist for project state
+
+## Current Problems
+- Context gets lost across chats
+- Risk of duplicating builds
+- Local copy may drift from GitHub edits
+
+## Next Steps
+1. Improve state management with Zustand persist
+2. Define project shape for saved state
+3. Refactor export pipeline to read from central store
+ 
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
