@@ -35,6 +35,55 @@ export function createDivisionFromBase(baseDivision, overrides, existingDivision
 
   return newDivision
 }
+
+// -------------------------
+// NEW: parse divisions text into dropdown-friendly entries
+// -------------------------
+export function parseDivisionEntries(text) {
+  if (!text || typeof text !== "string") return [];
+
+  const entries = [];
+
+  /**
+   * This regex is a starter assumption.
+   * You may need to tweak it to match the real structure
+   * of your divisions.txt file.
+   *
+   * It assumes repeated division blocks somewhat like:
+   * TDeckDivisionDescriptor SOME_ID { ... }
+   */
+  const blockRegex = /TDeckDivisionDescriptor\s+([A-Za-z0-9_]+)\s*\{([\s\S]*?)\}/g;
+
+  let match;
+  while ((match = blockRegex.exec(text)) !== null) {
+    const rawId = match[1];
+    const block = match[2];
+
+    // Try a few likely field names for division display name
+    const nameMatch =
+      block.match(/DisplayName\s*=\s*"([^"]+)"/) ||
+      block.match(/DivisionName\s*=\s*"([^"]+)"/) ||
+      block.match(/Name\s*=\s*"([^"]+)"/);
+
+    // Try a few likely field names for country reference
+    const countryMatch =
+      block.match(/Country\s*=\s*([A-Za-z0-9_]+)/) ||
+      block.match(/CountryId\s*=\s*([A-Za-z0-9_]+)/) ||
+      block.match(/Nationality\s*=\s*([A-Za-z0-9_]+)/) ||
+      block.match(/MotherCountry\s*=\s*([A-Za-z0-9_]+)/);
+
+    entries.push({
+      id: rawId,
+      name: nameMatch?.[1] || rawId,
+      countryId: countryMatch?.[1] || "",
+      rawBlock: block, // helpful later if you want to build from selected base division
+    });
+  }
+
+  return entries;
+}
+
+
 //unique name generator
 
 function makeUnique(base, existingList) {
