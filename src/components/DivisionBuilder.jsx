@@ -172,7 +172,7 @@ export default function DivisionBuilder({
 
               {filteredDivisions.map((entry) => (
                 <option key={entry.id} value={entry.id}>
-                  {getDivisionFriendlyLabel(entry)}
+                  {getDivisionFriendlyName(entry)}
                 </option>
               ))}
             </select>
