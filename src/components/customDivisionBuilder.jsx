@@ -94,6 +94,7 @@ export default function CustomDivisionBuilder({
   divisionsText,
   localizationText,
   uiSpecificCountriesText,
+  customCountries = [],
   customDivisions = [],
   onSave,
   onCancel,
@@ -119,6 +120,29 @@ export default function CustomDivisionBuilder({
       return [];
     }
   }, [uiSpecificCountriesText]);
+
+  const mergedCountries = useMemo(() => {
+    const builtIn = availableCountries.map((country) => ({
+      tag: country.tag,
+      coalition: country.coalition,
+      isCustom: false,
+    }));
+
+    const custom = customCountries.map((country) => ({
+      tag: country.countryTag,
+      coalition: country.coalition,
+      isCustom: true,
+    }));
+
+    const seen = new Set();
+    const merged = [...builtIn, ...custom].filter((country) => {
+      if (seen.has(country.tag)) return false;
+      seen.add(country.tag);
+      return true;
+    });
+
+    return merged;
+  }, [availableCountries, customCountries]);
 
   const localizationMap = useMemo(() => {
     try {
@@ -203,20 +227,11 @@ export default function CustomDivisionBuilder({
     const descriptorId = crypto.randomUUID();
     const usedTokens = getUsedTokens(availableDivisions, customDivisions);
 
-    const divisionNameToken = ensureUniqueToken(
-      randomToken("DIV"),
-      usedTokens,
-    );
+    const divisionNameToken = ensureUniqueToken(randomToken("DIV"), usedTokens);
 
-    const summaryTextToken = ensureUniqueToken(
-      randomToken("SUM"),
-      usedTokens,
-    );
+    const summaryTextToken = ensureUniqueToken(randomToken("SUM"), usedTokens);
 
-    const historyTextToken = ensureUniqueToken(
-      randomToken("HIS"),
-      usedTokens,
-    );
+    const historyTextToken = ensureUniqueToken(randomToken("HIS"), usedTokens);
 
     const interfaceOrder = getNextInterfaceOrder(
       availableDivisions,
@@ -295,7 +310,11 @@ export default function CustomDivisionBuilder({
       return;
     }
 
-    if (useCustomEmblem && emblemFile && !emblemFile.name.toLowerCase().endsWith(".png")) {
+    if (
+      useCustomEmblem &&
+      emblemFile &&
+      !emblemFile.name.toLowerCase().endsWith(".png")
+    ) {
       alert("Custom emblem file must be a PNG.");
       return;
     }
@@ -388,9 +407,10 @@ export default function CustomDivisionBuilder({
             style={{ width: "100%", padding: "8px", marginTop: "4px" }}
           >
             <option value="">Select country</option>
-            {availableCountries.map((country) => (
+            {mergedCountries.map((country) => (
               <option key={country.tag} value={country.tag}>
                 {country.tag} ({country.coalition})
+                {country.isCustom ? " (custom)" : ""}
               </option>
             ))}
           </select>
@@ -468,7 +488,12 @@ export default function CustomDivisionBuilder({
           <textarea
             value={summaryText}
             onChange={(e) => setSummaryText(e.target.value)}
-            style={{ width: "100%", padding: "8px", marginTop: "4px", minHeight: "80px" }}
+            style={{
+              width: "100%",
+              padding: "8px",
+              marginTop: "4px",
+              minHeight: "80px",
+            }}
             placeholder="Summary text for UNITS.csv"
           />
         </div>
@@ -479,7 +504,12 @@ export default function CustomDivisionBuilder({
           <textarea
             value={historyText}
             onChange={(e) => setHistoryText(e.target.value)}
-            style={{ width: "100%", padding: "8px", marginTop: "4px", minHeight: "100px" }}
+            style={{
+              width: "100%",
+              padding: "8px",
+              marginTop: "4px",
+              minHeight: "100px",
+            }}
             placeholder="History text for UNITS.csv"
           />
         </div>
@@ -537,7 +567,9 @@ export default function CustomDivisionBuilder({
               }}
             />
             {emblemFile && (
-              <div style={{ marginTop: "8px", fontSize: "12px", color: "#ccc" }}>
+              <div
+                style={{ marginTop: "8px", fontSize: "12px", color: "#ccc" }}
+              >
                 {emblemFile.name}
               </div>
             )}
@@ -557,18 +589,40 @@ export default function CustomDivisionBuilder({
             Generated Preview
           </div>
 
-          <div><strong>Export Name:</strong> {previewValues.exportName}</div>
-          <div><strong>DescriptorId:</strong> {previewValues.descriptorId}</div>
-          <div><strong>CfgName:</strong> {previewValues.cfgName}</div>
-          <div><strong>Division Name Token:</strong> {previewValues.divisionNameToken}</div>
-          <div><strong>Summary Token:</strong> {previewValues.summaryTextToken}</div>
-          <div><strong>History Token:</strong> {previewValues.historyTextToken}</div>
-          <div><strong>Interface Order:</strong> {previewValues.interfaceOrder}</div>
-          <div><strong>Division Rule:</strong> {previewValues.divisionRule}</div>
-          <div><strong>Cost Matrix:</strong> {previewValues.costMatrix}</div>
-          <div><strong>Emblem Texture:</strong> {previewValues.emblemTexture}</div>
           <div>
-            <strong>Emblem File:</strong> {previewValues.emblemFileName || "(using base emblem)"}
+            <strong>Export Name:</strong> {previewValues.exportName}
+          </div>
+          <div>
+            <strong>DescriptorId:</strong> {previewValues.descriptorId}
+          </div>
+          <div>
+            <strong>CfgName:</strong> {previewValues.cfgName}
+          </div>
+          <div>
+            <strong>Division Name Token:</strong>{" "}
+            {previewValues.divisionNameToken}
+          </div>
+          <div>
+            <strong>Summary Token:</strong> {previewValues.summaryTextToken}
+          </div>
+          <div>
+            <strong>History Token:</strong> {previewValues.historyTextToken}
+          </div>
+          <div>
+            <strong>Interface Order:</strong> {previewValues.interfaceOrder}
+          </div>
+          <div>
+            <strong>Division Rule:</strong> {previewValues.divisionRule}
+          </div>
+          <div>
+            <strong>Cost Matrix:</strong> {previewValues.costMatrix}
+          </div>
+          <div>
+            <strong>Emblem Texture:</strong> {previewValues.emblemTexture}
+          </div>
+          <div>
+            <strong>Emblem File:</strong>{" "}
+            {previewValues.emblemFileName || "(using base emblem)"}
           </div>
         </div>
       </div>

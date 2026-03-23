@@ -278,6 +278,7 @@ export default function DivisionBuilder({
                 divisionsText={project.files.divisionsText}
                 localizationText={project.files.localizationText}
                 uiSpecificCountriesText={project.files.uiSpecificCountriesText}
+                customCountries={project.customCountries || []}
                 customDivisions={project.customDivisions || []}
                 onCancel={() => setShowDivisionEditor(false)}
                 onSave={(customDivision) => {

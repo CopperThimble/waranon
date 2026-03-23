@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   parseCountriesInfoEntries,
   generateNewCountryData,
+  validateNewCountryData,
 } from "../generators/country";
 
 export default function CountryBuilder({
@@ -23,6 +24,7 @@ export default function CountryBuilder({
   const [baseCountry, setBaseCountry] = useState("BEL");
   const [newTag, setNewTag] = useState("ABC");
   const [newName, setNewName] = useState("New Country");
+  const [unitToken, setUnitToken] = useState("NAMES_ABCD");
 
   const [useCustomFlag, setUseCustomFlag] = useState(false);
   const [customFlagFile, setCustomFlagFile] = useState(null);
@@ -51,6 +53,58 @@ export default function CountryBuilder({
     };
   }, [customFlagFile]);
 
+  const validation = useMemo(() => {
+    try {
+      return validateNewCountryData({
+        fileText: uiSpecificCountriesText,
+        newCountryTag: newTag,
+        newCountryName: newName,
+        unitToken,
+        useCustomFlag,
+        customFlagFileName: customFlagFile ? customFlagFile.name : null,
+      });
+    } catch (error) {
+      return {
+        isValid: false,
+        errors: [error.message],
+        warnings: [],
+        normalized: null,
+      };
+    }
+  }, [
+    uiSpecificCountriesText,
+    newTag,
+    newName,
+    unitToken,
+    useCustomFlag,
+    customFlagFile,
+  ]);
+
+  const previewData = useMemo(() => {
+    try {
+      return generateNewCountryData({
+        fileText: uiSpecificCountriesText,
+        baseCountryTag: baseCountry,
+        newCountryTag: newTag,
+        newCountryName: newName,
+        unitToken,
+        useCustomFlag,
+        customFlagFileName: customFlagFile ? customFlagFile.name : null,
+        addTextFormatEntry: true,
+      });
+    } catch (error) {
+      return null;
+    }
+  }, [
+    uiSpecificCountriesText,
+    baseCountry,
+    newTag,
+    newName,
+    unitToken,
+    useCustomFlag,
+    customFlagFile,
+  ]);
+
   function handleSave() {
     try {
       const generated = generateNewCountryData({
@@ -58,7 +112,7 @@ export default function CountryBuilder({
         baseCountryTag: baseCountry,
         newCountryTag: newTag,
         newCountryName: newName,
-        unitToken: "NAMES_ABCD",
+        unitToken,
         useCustomFlag,
         customFlagFileName: customFlagFile ? customFlagFile.name : null,
         addTextFormatEntry: true,
@@ -123,6 +177,17 @@ export default function CountryBuilder({
         </div>
 
         <div>
+          <label>Unit Token</label>
+          <br />
+          <input
+            value={unitToken}
+            onChange={(e) => setUnitToken(e.target.value.toUpperCase())}
+            style={{ width: "100%", padding: "8px", marginTop: "4px" }}
+            placeholder="NAMES_ABCD"
+          />
+        </div>
+
+        <div>
           <label>
             <input
               type="checkbox"
@@ -181,10 +246,98 @@ export default function CountryBuilder({
             )}
           </div>
         )}
+
+        {(validation.errors.length > 0 || validation.warnings.length > 0) && (
+          <div
+            style={{
+              padding: "12px",
+              border: "1px solid #666",
+              borderRadius: "10px",
+              background: "#0f0f0f",
+            }}
+          >
+            {validation.errors.length > 0 && (
+              <div style={{ marginBottom: validation.warnings.length ? "8px" : 0 }}>
+                <div style={{ fontWeight: "bold", marginBottom: "6px" }}>Errors</div>
+                {validation.errors.map((error, index) => (
+                  <div key={index} style={{ color: "#ff8f8f", fontSize: "13px" }}>
+                    {error}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {validation.warnings.length > 0 && (
+              <div>
+                <div style={{ fontWeight: "bold", marginBottom: "6px" }}>Warnings</div>
+                {validation.warnings.map((warning, index) => (
+                  <div key={index} style={{ color: "#ffd27f", fontSize: "13px" }}>
+                    {warning}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {previewData && (
+          <div
+            style={{
+              marginTop: "8px",
+              padding: "12px",
+              border: "1px solid #666",
+              borderRadius: "10px",
+              background: "#0f0f0f",
+            }}
+          >
+            <div style={{ marginBottom: "8px", fontWeight: "bold" }}>
+              Generated Preview
+            </div>
+
+            <div><strong>Country Tag:</strong> {previewData.countryTag}</div>
+            <div><strong>Name Token:</strong> {previewData.nameToken}</div>
+            <div><strong>Unit Token:</strong> {previewData.unitToken}</div>
+            <div><strong>Flag Texture Token:</strong> {previewData.flagTextureToken}</div>
+            <div><strong>Flag File Name:</strong> {previewData.flagFileName || "(using base flag)"}</div>
+
+            <div style={{ marginTop: "10px", fontWeight: "bold" }}>
+              UISpecificCountriesInfos Entry
+            </div>
+            <pre style={previewStyles.pre}>{previewData.countriesInfoEntry}</pre>
+
+            {previewData.textureEntry && (
+              <>
+                <div style={{ marginTop: "10px", fontWeight: "bold" }}>
+                  Texture Entry
+                </div>
+                <pre style={previewStyles.pre}>{previewData.textureEntry}</pre>
+              </>
+            )}
+
+            {previewData.textFormatEntry && (
+              <>
+                <div style={{ marginTop: "10px", fontWeight: "bold" }}>
+                  CountriesTextFormatScriptMap Entry
+                </div>
+                <pre style={previewStyles.pre}>{previewData.textFormatEntry}</pre>
+              </>
+            )}
+
+            <div style={{ marginTop: "10px", fontWeight: "bold" }}>
+              UnitNames File
+            </div>
+            <pre style={previewStyles.pre}>{previewData.unitNamesFile}</pre>
+
+            <div style={{ marginTop: "10px", fontWeight: "bold" }}>
+              INTERFACE_OUTGAME.csv Row(s)
+            </div>
+            <pre style={previewStyles.pre}>{previewData.interfaceCsv}</pre>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: "8px" }}>
-        <button type="button" onClick={handleSave}>
+        <button type="button" onClick={handleSave} disabled={!validation.isValid}>
           Save Country
         </button>
         <button type="button" onClick={onCancel}>
@@ -194,3 +347,18 @@ export default function CountryBuilder({
     </div>
   );
 }
+
+const previewStyles = {
+  pre: {
+    marginTop: "6px",
+    padding: "10px",
+    borderRadius: "8px",
+    background: "#0b0b0b",
+    border: "1px solid #444",
+    color: "#ddd",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    fontSize: "12px",
+    overflowX: "auto",
+  },
+};
