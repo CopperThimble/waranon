@@ -3,6 +3,9 @@ import DivisionBuilder from "./components/DivisionBuilder";
 import uiSpecificCountriesText from "./templates/UISpecificCountriesInfos.txt?raw";
 import divisionsText from "./templates/Divisions.txt?raw";
 import localizationText from "./templates/localizationexample.txt?raw";
+import divisionRulesText from "./templates/DivisionRules.txt?raw";
+import unitsText from "./templates/UniteDescriptor.txt?raw";
+import deckSerializerText from "./templates/DeckSerializer.txt?raw";
 
 function createEmptyProject() {
   return {
@@ -53,7 +56,9 @@ function createEmptyProject() {
       uiSpecificCountriesText,
       divisionsText,
       localizationText,
-      deckSerializerText: "",
+      divisionRulesText,
+      unitsText,
+      deckSerializerText,
     },
     validation: {
       errors: [],

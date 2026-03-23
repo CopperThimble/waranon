@@ -1,37 +1,41 @@
-export function createDivisionFromBase(baseDivision, overrides, existingDivisions) {
-  const newDivision = structuredClone(baseDivision)
+export function createDivisionFromBase(
+  baseDivision,
+  overrides,
+  existingDivisions,
+) {
+  const newDivision = structuredClone(baseDivision);
 
   // --- Core identity ---
-  newDivision.id = crypto.randomUUID()
-  newDivision.descriptorId = crypto.randomUUID()
+  newDivision.id = crypto.randomUUID();
+  newDivision.descriptorId = crypto.randomUUID();
 
   // --- Apply overrides LAST ---
-  Object.assign(newDivision, overrides)
+  Object.assign(newDivision, overrides);
 
   // --- Enforce required uniqueness ---
   newDivision.cfgName = makeUnique(
     newDivision.cfgName,
-    existingDivisions.map(d => d.cfgName)
-  )
+    existingDivisions.map((d) => d.cfgName),
+  );
 
-  newDivision.divisionName = enforceTokenLength(newDivision.divisionName, 10)
-  newDivision.summaryToken = enforceTokenLength(newDivision.summaryToken, 10)
-  newDivision.historyToken = enforceTokenLength(newDivision.historyToken, 10)
+  newDivision.divisionName = enforceTokenLength(newDivision.divisionName, 10);
+  newDivision.summaryToken = enforceTokenLength(newDivision.summaryToken, 10);
+  newDivision.historyToken = enforceTokenLength(newDivision.historyToken, 10);
 
   // --- Interface Order ---
   newDivision.interfaceOrder =
-    Math.max(0, ...existingDivisions.map(d => d.interfaceOrder || 0)) + 1
+    Math.max(0, ...existingDivisions.map((d) => d.interfaceOrder || 0)) + 1;
 
   // --- Country Tag Injection ---
   if (newDivision.tags) {
-    newDivision.tags.countryTag = newDivision.countryId
+    newDivision.tags.countryTag = newDivision.countryId;
   }
 
   // --- Rename linked systems ---
-  newDivision.divisionRules.id = generateRuleName(newDivision.cfgName)
-  newDivision.costMatrix.id = generateCostMatrixName(newDivision.cfgName)
+  newDivision.divisionRules.id = generateRuleName(newDivision.cfgName);
+  newDivision.costMatrix.id = generateCostMatrixName(newDivision.cfgName);
 
-  return newDivision
+  return newDivision;
 }
 
 // -------------------------
@@ -41,6 +45,9 @@ export function parseDivisionEntries(text) {
   if (!text || typeof text !== "string") return [];
 
   const entries = [];
+  const divisionRuleMatch = block.match(/DivisionRule\s*=\s*([A-Za-z0-9_]+)/);
+  const costMatrixMatch = block.match(/CostMatrix\s*=\s*([A-Za-z0-9_]+)/);
+  const emblemTextureMatch = block.match(/EmblemTexture\s*=\s*"([^"]+)"/);
 
   const blockRegex =
     /export\s+([A-Za-z0-9_]+)\s+is\s+TDeckDivisionDescriptor\s*\(([\s\S]*?)\n\)/g;
@@ -52,11 +59,17 @@ export function parseDivisionEntries(text) {
 
     const cfgNameMatch = block.match(/CfgName\s*=\s*'([^']+)'/);
     const divisionNameMatch = block.match(/DivisionName\s*=\s*'([^']+)'/);
-    const coalitionMatch = block.match(/DivisionCoalition\s*=\s*ECoalition\/([A-Z]+)/);
+    const coalitionMatch = block.match(
+      /DivisionCoalition\s*=\s*ECoalition\/([A-Z]+)/,
+    );
     const countryMatch = block.match(/CountryId\s*=\s*"([^"]+)"/);
     const typeTokenMatch = block.match(/TypeToken\s*=\s*"([^"]+)"/);
-    const summaryTextTokenMatch = block.match(/SummaryTextToken\s*=\s*"([^"]+)"/);
-    const historyTextTokenMatch = block.match(/HistoryTextToken\s*=\s*"([^"]+)"/);
+    const summaryTextTokenMatch = block.match(
+      /SummaryTextToken\s*=\s*"([^"]+)"/,
+    );
+    const historyTextTokenMatch = block.match(
+      /HistoryTextToken\s*=\s*"([^"]+)"/,
+    );
     const interfaceOrderMatch = block.match(/InterfaceOrder\s*=\s*([0-9.]+)/);
 
     entries.push({
@@ -72,6 +85,9 @@ export function parseDivisionEntries(text) {
       interfaceOrder: interfaceOrderMatch
         ? Number(interfaceOrderMatch[1])
         : null,
+      divisionRule: divisionRuleMatch?.[1] || "",
+      costMatrix: costMatrixMatch?.[1] || "",
+      emblemTexture: emblemTextureMatch?.[1] || "",
       rawBlock: block,
     });
   }
@@ -79,19 +95,18 @@ export function parseDivisionEntries(text) {
   return entries;
 }
 
-
 //unique name generator
 
 function makeUnique(base, existingList) {
-  let name = base
-  let i = 1
+  let name = base;
+  let i = 1;
 
   while (existingList.includes(name)) {
-    name = `${base}_${i}`
-    i++
+    name = `${base}_${i}`;
+    i++;
   }
 
-  return name
+  return name;
 }
 
 //slug identifier builder
@@ -115,9 +130,9 @@ export function getNextInterfaceOrder(divisions) {
 //token length enforcer
 function enforceTokenLength(value, length) {
   if (!value || value.length !== length) {
-    throw new Error(`Token must be exactly ${length} characters`)
+    throw new Error(`Token must be exactly ${length} characters`);
   }
-  return value
+  return value;
 }
 
 //token generator
@@ -135,11 +150,11 @@ export function generateTenCharToken(prefix = "") {
 
 //rule+matrixnaming
 function generateRuleName(cfgName) {
-  return `Descriptor_Deck_Division_${cfgName}_Rule`
+  return `Descriptor_Deck_Division_${cfgName}_Rule`;
 }
 
 function generateCostMatrixName(cfgName) {
-  return `MatrixCostName_${cfgName}`
+  return `MatrixCostName_${cfgName}`;
 }
 
 //enforce unique token

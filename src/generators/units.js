@@ -79,3 +79,70 @@ export function mapUnitRoleToCategory(unitRole) {
       return null;
   }
 }
+
+export function buildUnitsByCategory({
+  selectedDivision,
+  divisionRules,
+  units,
+  localizationMap = {},
+}) {
+  const emptyCategories = {
+    log: [],
+    inf: [],
+    art: [],
+    tnk: [],
+    rec: [],
+    aa: [],
+    hel: [],
+    air: [],
+  };
+
+  if (!selectedDivision?.divisionRule) {
+    return emptyCategories;
+  }
+
+  const rule = divisionRules.find(
+    (entry) => entry.id === selectedDivision.divisionRule,
+  );
+
+  if (!rule) {
+    return emptyCategories;
+  }
+
+  const unitMap = new Map(units.map((unit) => [unit.id, unit]));
+  const result = {
+    log: [],
+    inf: [],
+    art: [],
+    tnk: [],
+    rec: [],
+    aa: [],
+    hel: [],
+    air: [],
+  };
+
+  for (const unitId of rule.unitIds) {
+    const unit = unitMap.get(unitId);
+    if (!unit) continue;
+
+    const category = mapUnitRoleToCategory(unit.unitRole);
+    if (!category) continue;
+
+    result[category].push({
+      id: unit.id,
+      className: unit.className,
+      countryId: unit.countryId,
+      coalition: unit.coalition,
+      unitRole: unit.unitRole,
+      nameToken: unit.nameToken,
+      name:
+        localizationMap[unit.nameToken] ||
+        unit.className ||
+        unit.id,
+      buttonTexture: unit.buttonTexture,
+      menuIconTexture: unit.menuIconTexture,
+    });
+  }
+
+  return result;
+}
