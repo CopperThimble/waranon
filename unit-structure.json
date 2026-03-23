@@ -1,0 +1,3385 @@
+{
+  "inputFile": "C:\\Users\\savva\\waranon-1\\src\\templates\\UniteDescriptor.txt",
+  "generatedAt": "2026-03-23T02:49:45.980Z",
+  "summary": {
+    "totalEntityDescriptors": 2485,
+    "fieldsDiscovered": 145,
+    "inlineModulesDiscovered": 5,
+    "descriptorExamples": [
+      "Descriptor_Unit_2K11_KRUG_DDR",
+      "Descriptor_Unit_2K11_KRUG_POL",
+      "Descriptor_Unit_2K11_KRUG_SOV",
+      "Descriptor_Unit_2K11_KRUG_TCH",
+      "Descriptor_Unit_2K12_KUB_DDR",
+      "Descriptor_Unit_2K12_KUB_POL",
+      "Descriptor_Unit_2K12_KUB_SOV",
+      "Descriptor_Unit_2K12_KUB_TCH",
+      "Descriptor_Unit_2S19_MstaS_SOV",
+      "Descriptor_Unit_2S1M_POL"
+    ]
+  },
+  "schema": {
+    "DescriptorId": {
+      "count": 3070,
+      "types": [
+        "guid"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "GUID:{d72a9d19-9dc8-4b8c-b63d-132c602b7337}",
+        "GUID:{09cb58e4-3cc7-46b5-9fb2-8d6e448e799f}",
+        "GUID:{94ca0001-4434-45e2-b93e-d1d8eedc0583}",
+        "GUID:{cb57e800-e9a0-46fb-8e0a-f9c6e23ab46f}",
+        "GUID:{c4c83faa-1edf-4382-ad7b-f54860eb49f5}"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ClassNameForDebug": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "Unit_2K11_KRUG_DDR",
+        "Unit_2K11_KRUG_POL",
+        "Unit_2K11_KRUG_SOV",
+        "Unit_2K11_KRUG_TCH",
+        "Unit_2K12_KUB_DDR",
+        "Unit_2K12_KUB_POL",
+        "Unit_2K12_KUB_SOV",
+        "Unit_2K12_KUB_TCH",
+        "Unit_2S19_MstaS_SOV",
+        "Unit_2S1M_POL",
+        "Unit_2S1_DDR",
+        "Unit_2S1_Gvozdika_SOV",
+        "Unit_2S1_POL",
+        "Unit_2S1_TCH",
+        "Unit_2S23_Nona_SVK_SOV",
+        "Unit_2S3M1_Akatsiya_SOV",
+        "Unit_2S3M_Akatsiya_SOV",
+        "Unit_2S3_DDR",
+        "Unit_2S4_Tyulpan_SOV",
+        "Unit_2S4_Tyulpan_TCH",
+        "Unit_2S5_GiatsintS_SOV",
+        "Unit_2S7M_Malka_SOV",
+        "Unit_2S7_Pion_POL",
+        "Unit_2S7_Pion_TCH",
+        "Unit_2S9_Nona_SOV",
+        "Unit_81mm_mortar_Aero_US",
+        "Unit_81mm_mortar_CAN",
+        "Unit_81mm_mortar_CLU_UK",
+        "Unit_81mm_mortar_Guards_UK",
+        "Unit_81mm_mortar_NG_US",
+        "Unit_81mm_mortar_Para_UK",
+        "Unit_81mm_mortar_UK",
+        "Unit_81mm_mortar_US",
+        "Unit_A222_Bereg_SOV",
+        "Unit_AEC_Militant_UK",
+        "Unit_AIFV_B_50_BEL",
+        "Unit_AIFV_B_50_NL",
+        "Unit_AIFV_B_C25_BEL",
+        "Unit_AIFV_B_C25_NL",
+        "Unit_AIFV_B_CMD_BEL",
+        "Unit_AIFV_B_CMD_NL",
+        "Unit_AIFV_B_CMD_ROK",
+        "Unit_AIFV_B_Cargo_NL",
+        "Unit_AIFV_B_MILAN_BEL",
+        "Unit_AIFV_B_Radar_NL",
+        "Unit_AIFV_B_TOW_NL",
+        "Unit_AML_60_FR",
+        "Unit_AML_60_Gendarmerie_FR",
+        "Unit_AML_90_CMD_FR",
+        "Unit_AML_90_FR"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Unit_2K11_KRUG_DDR",
+        "Unit_2K11_KRUG_POL",
+        "Unit_2K11_KRUG_SOV",
+        "Unit_2K11_KRUG_TCH",
+        "Unit_2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ModulesDescriptors": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "Coalition": {
+      "count": 2485,
+      "types": [
+        "enum_path"
+      ],
+      "optionSetValues": [
+        "ECoalition/NATO",
+        "ECoalition/PACT"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "ECoalition/PACT",
+        "ECoalition/NATO"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MotherCountry": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "BEL",
+        "CAN",
+        "DDR",
+        "ESP",
+        "FR",
+        "LUX",
+        "NL",
+        "POL",
+        "RFA",
+        "ROK",
+        "SOV",
+        "TCH",
+        "UK",
+        "US"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "DDR",
+        "POL",
+        "SOV",
+        "TCH",
+        "US"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "AcknowUnitTypes": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TypeUnitFormation": {
+      "count": 1940,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "Artillerie",
+        "Char",
+        "Reconnaissance",
+        "Supply"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Artillerie",
+        "Supply",
+        "Char",
+        "Reconnaissance"
+      ],
+      "sources": [
+        "module:TFormationModuleDescriptor"
+      ]
+    },
+    "TagSet": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ExperienceLevelsPackDescriptor": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/ExperienceLevelsPackDescriptor_XP_pack_simple_v3",
+        "~/ExperienceLevelsPackDescriptor_XP_pack_artillery",
+        "~/ExperienceLevelsPackDescriptor_XP_pack_SF_v2",
+        "~/ExperienceLevelsPackDescriptor_XP_pack_helico",
+        "~/ExperienceLevelsPackDescriptor_XP_pack_avion"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ExperienceMultiplierBonusOnKill": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/ExperienceMultiplierBonusOnKill"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnitConcealmentBonus": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 3,
+      "examples": [
+        "1",
+        "1.5",
+        "2",
+        "2.5",
+        "3"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MimeticName": {
+      "count": 2485,
+      "types": [
+        "double_quoted_string"
+      ],
+      "optionSetValues": [
+        "2K11_KRUG_DDR",
+        "2K11_KRUG_POL",
+        "2K11_KRUG_SOV",
+        "2K11_KRUG_TCH",
+        "2K12_KUB_DDR",
+        "2K12_KUB_POL",
+        "2K12_KUB_SOV",
+        "2K12_KUB_TCH",
+        "2S19_MstaS_SOV",
+        "2S1M_POL",
+        "2S1_DDR",
+        "2S1_Gvozdika_SOV",
+        "2S1_POL",
+        "2S1_TCH",
+        "2S23_Nona_SVK_SOV",
+        "2S3M1_Akatsiya_SOV",
+        "2S3M_Akatsiya_SOV",
+        "2S3_DDR",
+        "2S4_Tyulpan_SOV",
+        "2S4_Tyulpan_TCH",
+        "2S5_GiatsintS_SOV",
+        "2S7M_Malka_SOV",
+        "2S7_Pion_POL",
+        "2S7_Pion_TCH",
+        "2S9_Nona_SOV",
+        "81mm_mortar_Aero_US",
+        "81mm_mortar_CAN",
+        "81mm_mortar_CLU_UK",
+        "81mm_mortar_Guards_UK",
+        "81mm_mortar_NG_US",
+        "81mm_mortar_Para_UK",
+        "81mm_mortar_UK",
+        "81mm_mortar_US",
+        "A222_Bereg_SOV",
+        "AEC_Militant_UK",
+        "AIFV_B_50_BEL",
+        "AIFV_B_50_NL",
+        "AIFV_B_C25_BEL",
+        "AIFV_B_C25_NL",
+        "AIFV_B_CMD_BEL",
+        "AIFV_B_CMD_NL",
+        "AIFV_B_Cargo_NL",
+        "AIFV_B_MILAN_BEL",
+        "AIFV_B_Radar_NL",
+        "AIFV_B_TOW_NL",
+        "AML_60_FR",
+        "AML_60_Gendarmerie_FR",
+        "AML_90_CMD_FR",
+        "AML_90_FR",
+        "AML_90_Reserve_FR"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "2K11_KRUG_DDR",
+        "2K11_KRUG_POL",
+        "2K11_KRUG_SOV",
+        "2K11_KRUG_TCH",
+        "2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "BlackHoleKey": {
+      "count": 2485,
+      "types": [
+        "double_quoted_string",
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "2K11_KRUG_DDR",
+        "2K11_KRUG_POL",
+        "2K11_KRUG_SOV",
+        "2K11_KRUG_TCH",
+        "2K12_KUB_DDR",
+        "2K12_KUB_POL",
+        "2K12_KUB_SOV",
+        "2K12_KUB_TCH",
+        "2S19_MstaS_SOV",
+        "2S1M_POL",
+        "2S1_DDR",
+        "2S1_Gvozdika_SOV",
+        "2S1_POL",
+        "2S1_TCH",
+        "2S23_Nona_SVK_SOV",
+        "2S3M1_Akatsiya_SOV",
+        "2S3M_Akatsiya_SOV",
+        "2S3_DDR",
+        "2S4_Tyulpan_SOV",
+        "2S4_Tyulpan_TCH",
+        "2S5_GiatsintS_SOV",
+        "2S7M_Malka_SOV",
+        "2S7_Pion_POL",
+        "2S7_Pion_TCH",
+        "2S9_Nona_SOV",
+        "81mm_mortar_Aero_US",
+        "81mm_mortar_CAN",
+        "81mm_mortar_CLU_UK",
+        "81mm_mortar_Guards_UK",
+        "81mm_mortar_NG_US",
+        "81mm_mortar_Para_UK",
+        "81mm_mortar_UK",
+        "81mm_mortar_US",
+        "A222_Bereg_SOV",
+        "AEC_Militant_UK",
+        "AIFV_B_50_BEL",
+        "AIFV_B_50_NL",
+        "AIFV_B_C25_BEL",
+        "AIFV_B_C25_NL",
+        "AIFV_B_CMD_BEL",
+        "AIFV_B_CMD_NL",
+        "AIFV_B_Cargo_NL",
+        "AIFV_B_MILAN_BEL",
+        "AIFV_B_Radar_NL",
+        "AIFV_B_TOW_NL",
+        "AML_60_FR",
+        "AML_60_Gendarmerie_FR",
+        "AML_90_CMD_FR",
+        "AML_90_FR",
+        "AML_90_Reserve_FR"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "2K11_KRUG_DDR",
+        "2K11_KRUG_POL",
+        "2K11_KRUG_SOV",
+        "2K11_KRUG_TCH",
+        "2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "GameplayBBoxBoneName": {
+      "count": 1230,
+      "types": [
+        "double_quoted_string"
+      ],
+      "optionSetValues": [
+        "chassis"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "chassis"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ReferenceMesh": {
+      "count": 1900,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/GFX/DepictionResources/Modele_2K11_KRUG_DDR",
+        "$/GFX/DepictionResources/Modele_2K11_KRUG_POL",
+        "$/GFX/DepictionResources/Modele_2K11_KRUG_SOV",
+        "$/GFX/DepictionResources/Modele_2K11_KRUG_TCH",
+        "$/GFX/DepictionResources/Modele_2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "AutoCoverRangeGRU": {
+      "count": 1940,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 123,
+      "max": 123,
+      "examples": [
+        "123"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "OccupationRadiusGRU": {
+      "count": 1940,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 35,
+      "max": 35,
+      "examples": [
+        "35"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TerrainList": {
+      "count": 1940,
+      "types": [
+        "inline_array"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "[~/ETerrainType/ForetLegere, ~/ETerrainType/ForetDense, ]",
+        "[~/ETerrainType/Batiment, ~/ETerrainType/Ruin, ~/ETerrainType/ForetLegere, ]"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UseTerrainsForEscape": {
+      "count": 1940,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "false",
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "false",
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxPhysicalDamages": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 2,
+      "max": 16,
+      "examples": [
+        "6",
+        "8",
+        "2",
+        "10",
+        "11"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxSuppressionDamages": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/GroundUnit_MaxSuppressionDamages",
+        "~/Infanterie_MaxSuppressionDamages",
+        "~/Helico_MaxSuppressionDamages",
+        "~/Airplane_MaxSuppressionDamages"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxStunDamages": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/GroundUnit_MaxStunDamages",
+        "~/Infanterie_MaxStunDamages",
+        "~/Helico_MaxStunDamages",
+        "~/Airplane_MaxStunDamages"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "PhysicalDamageLevelsPack": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/DamageLevelsPackDescriptor_Default_pack_paliers_degats_phy"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SuppressDamageLevelsPack": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/DamageLevelsPackDescriptor_GroundUnits_packSupp",
+        "~/DamageLevelsPackDescriptor_ArtyUnits_packSupp",
+        "~/DamageLevelsPackDescriptor_helo_packSupp",
+        "~/DamageLevelsPackDescriptor_Airplanes_packSupp"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "StunDamageLevelsPack": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/DamageLevelsPackDescriptor_Unit_packStun_aa",
+        "~/DamageLevelsPackDescriptor_Unit_packStun_Artillerie",
+        "~/DamageLevelsPackDescriptor_Unit_packStun"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SuppressDamagesRegenRatio": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/GroundUnit_SuppressDamagesRegenRatioList",
+        "~/Infanterie_SuppressDamagesRegenRatioList",
+        "~/Helico_SuppressDamagesRegenRatioList",
+        "~/Airplane_SuppressDamagesRegenRatioList"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "StunDamagesRegen": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/GroundUnit_StunDamagesRegen",
+        "~/Infanterie_StunDamagesRegen",
+        "~/Helico_StunDamagesRegen",
+        "~/Airplane_StunDamagesRegen"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "BlindageProperties": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "TBlindageProperties"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ResistanceFront": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=3)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=2)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_infanterie Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_vehicule Index=1)"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ResistanceSides": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=2)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_infanterie Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_vehicule Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=20)"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ResistanceRear": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_infanterie Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_vehicule Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=10)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=2)"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ResistanceTop": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_vehicule Index=2)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_vehicule Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_infanterie Index=1)",
+        "TResistanceTypeRTTI(Family=ResistanceFamily_blindage Index=10)"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ExplosiveReactiveArmor": {
+      "count": 2485,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "false",
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "false",
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "KillWhenDamagesReachMax": {
+      "count": 2485,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "HitRollECM": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": -0.6,
+      "max": 0,
+      "examples": [
+        "0",
+        "-0.1",
+        "-0.2",
+        "-0.4",
+        "-0.3"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UseTopArmorAgainstFire": {
+      "count": 2485,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "false",
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "true",
+        "false"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "Dangerousness": {
+      "count": 1821,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": -6,
+      "max": 211,
+      "examples": [
+        "39",
+        "21",
+        "18",
+        "6",
+        "27"
+      ],
+      "sources": [
+        "module:TDangerousnessModuleDescriptor"
+      ]
+    },
+    "MoralLevel": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 60,
+      "examples": [
+        "0",
+        "60"
+      ],
+      "sources": [
+        "module:TRoutModuleDescriptor"
+      ]
+    },
+    "MaxSpeedInKmph": {
+      "count": 2700,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 9,
+      "max": 1325,
+      "examples": [
+        "40",
+        "55",
+        "50",
+        "65",
+        "9"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "PathfindType": {
+      "count": 2485,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/Pathfind/PathfindTypes/Vehicle",
+        "$/Pathfind/PathfindTypes/AmphibiousVehicle",
+        "$/Pathfind/PathfindTypes/Infantry",
+        "$/Pathfind/PathfindTypes/Flying"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnitMovingType": {
+      "count": 1940,
+      "types": [
+        "enum_path"
+      ],
+      "optionSetValues": [
+        "EUnitMovingType/Infantry",
+        "EUnitMovingType/Track",
+        "EUnitMovingType/TrackAmphibious",
+        "EUnitMovingType/Wheel",
+        "EUnitMovingType/WheelAmphibious"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "EUnitMovingType/Track",
+        "EUnitMovingType/TrackAmphibious",
+        "EUnitMovingType/WheelAmphibious",
+        "EUnitMovingType/Infantry",
+        "EUnitMovingType/Wheel"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SpeedBonusFactorOnRoad": {
+      "count": 1940,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 2.83,
+      "examples": [
+        "2.35",
+        "1.71",
+        "1.88",
+        "1.92",
+        "2.22"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxAccelerationGRU": {
+      "count": 1940,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 11,
+      "max": 27,
+      "examples": [
+        "18",
+        "27",
+        "14",
+        "11"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxDecelerationGRU": {
+      "count": 1940,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 4,
+      "max": 155,
+      "examples": [
+        "35",
+        "55",
+        "4",
+        "155"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TempsDemiTour": {
+      "count": 1940,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0.1,
+      "max": 11,
+      "examples": [
+        "8",
+        "4.5",
+        "9",
+        "5",
+        "4"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "EngineCooldownTime": {
+      "count": 1940,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 1.5,
+      "examples": [
+        "0",
+        "1.5"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "FuelCapacity": {
+      "count": 1471,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 30,
+      "max": 5000,
+      "examples": [
+        "850",
+        "1000",
+        "550",
+        "300",
+        "800"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "FuelMoveDuration": {
+      "count": 1471,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 90,
+      "max": 2000,
+      "examples": [
+        "575",
+        "550",
+        "552",
+        "690",
+        "633"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "VisionRangesGRU": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "MAP ["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "OpticalStrengths": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "MAP ["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "IdentifyBaseProbability": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0.1,
+      "max": 1,
+      "examples": [
+        "0.2",
+        "0.1",
+        "0.3",
+        "0.75",
+        "0.5"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TimeBetweenEachIdentifyRoll": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 2,
+      "max": 15,
+      "examples": [
+        "12",
+        "15",
+        "10",
+        "4",
+        "6"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "VisibilityRuleDescriptor": {
+      "count": 2485,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/GFX/VisionRules/StandardWargameVisibilityRollRule"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "Connoisseur": {
+      "count": 698,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/GFX/Depiction/MissileCarriage_2K11_KRUG_DDR",
+        "$/GFX/Depiction/MissileCarriage_2K11_KRUG_POL",
+        "$/GFX/Depiction/MissileCarriage_2K11_KRUG_SOV",
+        "$/GFX/Depiction/MissileCarriage_2K11_KRUG_TCH",
+        "$/GFX/Depiction/MissileCarriage_2K12_KUB_DDR"
+      ],
+      "sources": [
+        "module:TMissileCarriageModuleDescriptor"
+      ]
+    },
+    "KillMode": {
+      "count": 2485,
+      "types": [
+        "enum_path"
+      ],
+      "optionSetValues": [
+        "EKillMode/Airplane",
+        "EKillMode/Helico",
+        "EKillMode/Infantry",
+        "EKillMode/Vehicle"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "EKillMode/Vehicle",
+        "EKillMode/Infantry",
+        "EKillMode/Helico",
+        "EKillMode/Airplane"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "CadavreDuration": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/CadavreDurationApresFeu",
+        "~/CadavreDuration_Infanterie"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "DeathExplosionAmmo": {
+      "count": 2485,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/GFX/Weapon/Ammo_Mort_Unite_faible",
+        "$/GFX/Weapon/Ammo_Mort_Unite_forte",
+        "$/GFX/Weapon/Ammo_Mort_Unite_ravitaillement",
+        "$/GFX/Weapon/Ammo_Mort_Unite_infanterie",
+        "$/GFX/Weapon/Ammo_Mort_Helico_Leger"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "DatabaseId": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 0,
+      "examples": [
+        "0"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "GameplayBehavior": {
+      "count": 2485,
+      "types": [
+        "enum_path",
+        "unknown"
+      ],
+      "optionSetValues": [
+        "EGameplayBehavior/Nothing"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "EGameplayBehavior/Nothing",
+        "EGameplayBehavior/Nothing | EGameplayBehavior/TacticalAttackNearCover",
+        "EGameplayBehavior/Nothing | EGameplayBehavior/RetreatOnOutOfAmmo",
+        "EGameplayBehavior/Nothing | EGameplayBehavior/TacticalAttackNearCover | EGameplayBehavior/RetreatOnOutOfAmmo",
+        "EGameplayBehavior/Nothing | EGameplayBehavior/TacticalAttackInCover | EGameplayBehavior/RetreatOnOutOfAmmo"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "FactoryType": {
+      "count": 2485,
+      "types": [
+        "enum_path"
+      ],
+      "optionSetValues": [
+        "EFactory/Art",
+        "EFactory/DCA",
+        "EFactory/Helis",
+        "EFactory/Infantry",
+        "EFactory/Logistic",
+        "EFactory/Planes",
+        "EFactory/Recons",
+        "EFactory/Tanks"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "EFactory/DCA",
+        "EFactory/Art",
+        "EFactory/Logistic",
+        "EFactory/Tanks",
+        "EFactory/Recons"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ProductionTime": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": -1,
+      "max": 5,
+      "examples": [
+        "5",
+        "-1"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ProductionRessourcesNeeded": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "MAP ["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "CanAssist": {
+      "count": 2155,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "false",
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "false",
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "AssistRequestBroadcastRadiusGRU": {
+      "count": 2155,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 88,
+      "examples": [
+        "0",
+        "88"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "DistanceToFleeGRU": {
+      "count": 2155,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 70,
+      "max": 353,
+      "examples": [
+        "353",
+        "70"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxDistanceForOffensiveReactionGRU": {
+      "count": 2155,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 353,
+      "max": 706,
+      "examples": [
+        "353",
+        "706"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxDistanceForEngagementGRU": {
+      "count": 2155,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 0,
+      "examples": [
+        "0"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SearchedTagsInEngagementTarget": {
+      "count": 2155,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "Texture": {
+      "count": 2485,
+      "types": [
+        "double_quoted_string"
+      ],
+      "optionSetValues": [
+        "Texture_Minimap_Unit_avion",
+        "Texture_Minimap_Unit_helico",
+        "Texture_Minimap_Unit_inf",
+        "Texture_Minimap_Unit_unit"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Texture_Minimap_Unit_unit",
+        "Texture_Minimap_Unit_inf",
+        "Texture_Minimap_Unit_helico",
+        "Texture_Minimap_Unit_avion"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "FollowUnitOrientation": {
+      "count": 2485,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "false",
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "false",
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ValidOrders": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/Descriptor_OrderAvailability_2K11_KRUG_DDR",
+        "~/Descriptor_OrderAvailability_2K11_KRUG_POL",
+        "~/Descriptor_OrderAvailability_2K11_KRUG_SOV",
+        "~/Descriptor_OrderAvailability_2K11_KRUG_TCH",
+        "~/Descriptor_OrderAvailability_2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnlockableOrders": {
+      "count": 2485,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/Descriptor_OrderAvailability_2K11_KRUG_DDR",
+        "~/Descriptor_OrderAvailability_2K11_KRUG_POL",
+        "~/Descriptor_OrderAvailability_2K11_KRUG_SOV",
+        "~/Descriptor_OrderAvailability_2K11_KRUG_TCH",
+        "~/Descriptor_OrderAvailability_2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MultiSelectionSortingOrder": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 10020,
+      "max": 20350,
+      "examples": [
+        "17155",
+        "17110",
+        "12230",
+        "12150",
+        "12120"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "IdentifiedTexture": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "TBUCKToolAlternativeValues_TUIValueTextureNameFromTEugBMutableInteger"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "CommandNameTrigger": {
+      "count": 4970,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/SpecificCommandName/UpdateGUIFromIconType"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "Alterator": {
+      "count": 4970,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/GUIOption/IconType"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnidentifiedTexture": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "TBUCKToolAlternativeValues_TUIValueTextureNameFromTEugBMutableInteger"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "PositionHeightOffset": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1000,
+      "max": 1000,
+      "examples": [
+        "1000"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnitAttackValue": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 1101,
+      "examples": [
+        "1",
+        "221",
+        "181",
+        "151",
+        "96"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnitDefenseValue": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 1101,
+      "examples": [
+        "1",
+        "221",
+        "181",
+        "151",
+        "96"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnitBonusXpPerLevelValue": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 1,
+      "examples": [
+        "1",
+        "0"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "PriceCategory": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "tank_A",
+        "tank_B",
+        "tank_C",
+        "tank_D"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "tank_A",
+        "tank_C",
+        "tank_D",
+        "tank_B"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UnitRole": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "AA",
+        "AT",
+        "appui",
+        "armor",
+        "engineer",
+        "howitzer",
+        "hq_helo",
+        "hq_inf",
+        "hq_tank",
+        "hq_veh",
+        "ifv",
+        "infantry",
+        "mlrs",
+        "mortar",
+        "reco",
+        "sead",
+        "supply",
+        "transport",
+        "uav"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "AA",
+        "howitzer",
+        "mortar",
+        "supply",
+        "transport"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SpecialtiesList": {
+      "count": 2485,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "NameToken": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "AXCMIJPHEH",
+        "BLSURILPLC",
+        "BMFMIPVPUJ",
+        "BNZGDRSCCK",
+        "CFVIWSMAFT",
+        "CGTPVSMERB",
+        "CHTYSQJGSZ",
+        "CHVZJZGUDQ",
+        "CMSAOFUBKF",
+        "CSLMEUDQTA",
+        "CZOVVLJBIA",
+        "DKVFRWUQVV",
+        "DMHOBINVGS",
+        "DMTQBQGHVR",
+        "DWOEODMVCY",
+        "EAOVGVRCQA",
+        "ELWLUQLCLJ",
+        "ETEBSCIGSM",
+        "EVRTHJUBXN",
+        "FYJJCVFIUT",
+        "GFNUITUCTT",
+        "GXVOSABVJZ",
+        "GXXHELBYEE",
+        "HSMLDWOADR",
+        "IWBYVSNMZG",
+        "KQVYAGWBOM",
+        "LYXCGEVYQW",
+        "MIDEZLEEGP",
+        "MQWCCDGSZL",
+        "NIXXLDVKLR",
+        "NSQYUDNYGV",
+        "OMVDOYEZUP",
+        "OOMLSYMGJE",
+        "PDJIBQDGDG",
+        "PDOHARERCO",
+        "PIODWXRAAB",
+        "PNFYFXXOLT",
+        "QKSHBSCKYG",
+        "QTQXWUYSZR",
+        "RBXKNHBINM",
+        "RTRBUAAJDH",
+        "SZGENWCFTK",
+        "TZDPQTYDWM",
+        "UTZRHTSPNX",
+        "VQOTVJWZGM",
+        "VTQTIQUQBD",
+        "XCQTBWSISY",
+        "XDJTMFDPVW",
+        "YELICYNRVE",
+        "YOTUMPCYEK"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "KQVYAGWBOM",
+        "ETEBSCIGSM",
+        "CGTPVSMERB",
+        "GXVOSABVJZ",
+        "CSLMEUDQTA"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "InfoPanelConfigurationToken": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "Default",
+        "HelicoDefault",
+        "HelicoSupplier",
+        "HelicoTransporter",
+        "Infantry",
+        "VehiculeSupplier",
+        "VehiculeTransporter",
+        "avion"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Default",
+        "Infantry",
+        "VehiculeSupplier",
+        "VehiculeTransporter",
+        "HelicoTransporter"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "DisplayRoadSpeedInKmph": {
+      "count": 1355,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 120,
+      "examples": [
+        "75",
+        "100",
+        "16",
+        "90",
+        "80"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UpgradeFromUnit": {
+      "count": 1578,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Descriptor_Unit_2K12_KUB_DDR",
+        "Descriptor_Unit_Tor_SOV",
+        "Descriptor_Unit_2K12_KUB_TCH",
+        "Descriptor_Unit_2K11_KRUG_POL",
+        "Descriptor_Unit_2S3M1_Akatsiya_SOV"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MenuIconTexture": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "Texture_RTS_H_AA",
+        "Texture_RTS_H_AA_air",
+        "Texture_RTS_H_AA_hel",
+        "Texture_RTS_H_AA_veh",
+        "Texture_RTS_H_AT",
+        "Texture_RTS_H_ATGM_air",
+        "Texture_RTS_H_ATGM_hel",
+        "Texture_RTS_H_ATGun",
+        "Texture_RTS_H_AT_veh",
+        "Texture_RTS_H_Armor",
+        "Texture_RTS_H_Armor_heavy",
+        "Texture_RTS_H_CMD_hel",
+        "Texture_RTS_H_CMD_inf",
+        "Texture_RTS_H_CMD_inf_sf",
+        "Texture_RTS_H_CMD_tank",
+        "Texture_RTS_H_CMD_veh",
+        "Texture_RTS_H_HMG",
+        "Texture_RTS_H_Infantry",
+        "Texture_RTS_H_Infantry_sf",
+        "Texture_RTS_H_RECO_hel",
+        "Texture_RTS_H_RECO_inf",
+        "Texture_RTS_H_RECO_inf_sf",
+        "Texture_RTS_H_RECO_veh",
+        "Texture_RTS_H_SEAD_air",
+        "Texture_RTS_H_Support_air",
+        "Texture_RTS_H_Support_hel",
+        "Texture_RTS_H_appui",
+        "Texture_RTS_H_assault",
+        "Texture_RTS_H_hel",
+        "Texture_RTS_H_hel_supply",
+        "Texture_RTS_H_howitzer",
+        "Texture_RTS_H_ifv",
+        "Texture_RTS_H_manpad",
+        "Texture_RTS_H_mlrs",
+        "Texture_RTS_H_mortar",
+        "Texture_RTS_H_reco",
+        "Texture_RTS_H_supply",
+        "Texture_RTS_H_transport_noweapon",
+        "Texture_RTS_H_transport_small",
+        "Texture_RTS_H_uav"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Texture_RTS_H_AA",
+        "Texture_RTS_H_howitzer",
+        "Texture_RTS_H_mortar",
+        "Texture_RTS_H_supply",
+        "Texture_RTS_H_appui"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ButtonTexture": {
+      "count": 2485,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "Texture_Button_Unit_2K11_KRUG_DDR",
+        "Texture_Button_Unit_2K11_KRUG_POL",
+        "Texture_Button_Unit_2K11_KRUG_SOV",
+        "Texture_Button_Unit_2K11_KRUG_TCH",
+        "Texture_Button_Unit_2K12_KUB_DDR",
+        "Texture_Button_Unit_2K12_KUB_POL",
+        "Texture_Button_Unit_2K12_KUB_SOV",
+        "Texture_Button_Unit_2K12_KUB_TCH",
+        "Texture_Button_Unit_2S19_MstaS_SOV",
+        "Texture_Button_Unit_2S1M_POL",
+        "Texture_Button_Unit_2S1_DDR",
+        "Texture_Button_Unit_2S1_Gvozdika_SOV",
+        "Texture_Button_Unit_2S1_POL",
+        "Texture_Button_Unit_2S1_TCH",
+        "Texture_Button_Unit_2S23_Nona_SVK_SOV",
+        "Texture_Button_Unit_2S3M1_Akatsiya_SOV",
+        "Texture_Button_Unit_2S3M_Akatsiya_SOV",
+        "Texture_Button_Unit_2S3_DDR",
+        "Texture_Button_Unit_2S4_Tyulpan_SOV",
+        "Texture_Button_Unit_2S4_Tyulpan_TCH",
+        "Texture_Button_Unit_2S5_GiatsintS_SOV",
+        "Texture_Button_Unit_2S7M_Malka_SOV",
+        "Texture_Button_Unit_2S7_Pion_POL",
+        "Texture_Button_Unit_2S7_Pion_TCH",
+        "Texture_Button_Unit_2S9_Nona_SOV",
+        "Texture_Button_Unit_81mm_mortar_Aero_US",
+        "Texture_Button_Unit_81mm_mortar_CAN",
+        "Texture_Button_Unit_81mm_mortar_CLU_UK",
+        "Texture_Button_Unit_81mm_mortar_Guards_UK",
+        "Texture_Button_Unit_81mm_mortar_NG_US",
+        "Texture_Button_Unit_81mm_mortar_Para_UK",
+        "Texture_Button_Unit_81mm_mortar_UK",
+        "Texture_Button_Unit_81mm_mortar_US",
+        "Texture_Button_Unit_A222_Bereg_SOV",
+        "Texture_Button_Unit_AEC_Militant_UK",
+        "Texture_Button_Unit_AIFV_B_50_BEL",
+        "Texture_Button_Unit_AIFV_B_50_NL",
+        "Texture_Button_Unit_AIFV_B_C25_BEL",
+        "Texture_Button_Unit_AIFV_B_C25_NL",
+        "Texture_Button_Unit_AIFV_B_CMD_BEL",
+        "Texture_Button_Unit_AIFV_B_CMD_NL",
+        "Texture_Button_Unit_AIFV_B_CMD_ROK",
+        "Texture_Button_Unit_AIFV_B_Cargo_NL",
+        "Texture_Button_Unit_AIFV_B_MILAN_BEL",
+        "Texture_Button_Unit_AIFV_B_Radar_NL",
+        "Texture_Button_Unit_AIFV_B_TOW_NL",
+        "Texture_Button_Unit_AML_60_FR",
+        "Texture_Button_Unit_AML_60_Gendarmerie_FR",
+        "Texture_Button_Unit_AML_90_CMD_FR",
+        "Texture_Button_Unit_AML_90_FR"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Texture_Button_Unit_2K11_KRUG_DDR",
+        "Texture_Button_Unit_2K11_KRUG_POL",
+        "Texture_Button_Unit_2K11_KRUG_SOV",
+        "Texture_Button_Unit_2K11_KRUG_TCH",
+        "Texture_Button_Unit_2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TypeStrategicCount": {
+      "count": 2485,
+      "types": [
+        "enum_path"
+      ],
+      "optionSetValues": [
+        "ETypeStrategicDetailedCount/AA",
+        "ETypeStrategicDetailedCount/AA_Hel",
+        "ETypeStrategicDetailedCount/AA_Veh",
+        "ETypeStrategicDetailedCount/AT",
+        "ETypeStrategicDetailedCount/AT_Gun",
+        "ETypeStrategicDetailedCount/AT_Hel",
+        "ETypeStrategicDetailedCount/AT_Veh",
+        "ETypeStrategicDetailedCount/Air_AA",
+        "ETypeStrategicDetailedCount/Air_AT",
+        "ETypeStrategicDetailedCount/Air_Sead",
+        "ETypeStrategicDetailedCount/Air_Support",
+        "ETypeStrategicDetailedCount/Armor",
+        "ETypeStrategicDetailedCount/Armor_Heavy",
+        "ETypeStrategicDetailedCount/CMD_Hel",
+        "ETypeStrategicDetailedCount/CMD_Inf",
+        "ETypeStrategicDetailedCount/CMD_Tank",
+        "ETypeStrategicDetailedCount/CMD_Veh",
+        "ETypeStrategicDetailedCount/Engineer",
+        "ETypeStrategicDetailedCount/Hel_Support",
+        "ETypeStrategicDetailedCount/Hel_Transport",
+        "ETypeStrategicDetailedCount/Howitzer",
+        "ETypeStrategicDetailedCount/Ifv",
+        "ETypeStrategicDetailedCount/Infantry",
+        "ETypeStrategicDetailedCount/Manpad",
+        "ETypeStrategicDetailedCount/Mlrs",
+        "ETypeStrategicDetailedCount/Mortar",
+        "ETypeStrategicDetailedCount/Reco",
+        "ETypeStrategicDetailedCount/Reco_Hel",
+        "ETypeStrategicDetailedCount/Reco_Inf",
+        "ETypeStrategicDetailedCount/Reco_Veh",
+        "ETypeStrategicDetailedCount/Supply",
+        "ETypeStrategicDetailedCount/Supply_Hel",
+        "ETypeStrategicDetailedCount/Support",
+        "ETypeStrategicDetailedCount/Transport"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "ETypeStrategicDetailedCount/AA",
+        "ETypeStrategicDetailedCount/Howitzer",
+        "ETypeStrategicDetailedCount/Mortar",
+        "ETypeStrategicDetailedCount/Supply",
+        "ETypeStrategicDetailedCount/Support"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UpkeepPercentage": {
+      "count": 2485,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 1,
+      "examples": [
+        "1",
+        "0",
+        "0.5"
+      ],
+      "sources": [
+        "module:TUnitUpkeepModuleDescriptor"
+      ]
+    },
+    "SpawnType": {
+      "count": 2485,
+      "types": [
+        "enum_path"
+      ],
+      "optionSetValues": [
+        "EShowroomSpawnType/Airplane",
+        "EShowroomSpawnType/Helico",
+        "EShowroomSpawnType/Infantry",
+        "EShowroomSpawnType/Vehicle"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "EShowroomSpawnType/Vehicle",
+        "EShowroomSpawnType/Infantry",
+        "EShowroomSpawnType/Helico",
+        "EShowroomSpawnType/Airplane"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ShowRoomBlackHoleIdentifier": {
+      "count": 2485,
+      "types": [
+        "double_quoted_string"
+      ],
+      "optionSetValues": [
+        "showroom_2K11_KRUG_DDR",
+        "showroom_2K11_KRUG_POL",
+        "showroom_2K11_KRUG_SOV",
+        "showroom_2K11_KRUG_TCH",
+        "showroom_2K12_KUB_DDR",
+        "showroom_2K12_KUB_POL",
+        "showroom_2K12_KUB_SOV",
+        "showroom_2K12_KUB_TCH",
+        "showroom_2S19_MstaS_SOV",
+        "showroom_2S1M_POL",
+        "showroom_2S1_DDR",
+        "showroom_2S1_Gvozdika_SOV",
+        "showroom_2S1_POL",
+        "showroom_2S1_TCH",
+        "showroom_2S23_Nona_SVK_SOV",
+        "showroom_2S3M1_Akatsiya_SOV",
+        "showroom_2S3M_Akatsiya_SOV",
+        "showroom_2S3_DDR",
+        "showroom_2S4_Tyulpan_SOV",
+        "showroom_2S4_Tyulpan_TCH",
+        "showroom_2S5_GiatsintS_SOV",
+        "showroom_2S7M_Malka_SOV",
+        "showroom_2S7_Pion_POL",
+        "showroom_2S7_Pion_TCH",
+        "showroom_2S9_Nona_SOV",
+        "showroom_81mm_mortar_Aero_US",
+        "showroom_81mm_mortar_CAN",
+        "showroom_81mm_mortar_CLU_UK",
+        "showroom_81mm_mortar_Guards_UK",
+        "showroom_81mm_mortar_NG_US",
+        "showroom_81mm_mortar_Para_UK",
+        "showroom_81mm_mortar_UK",
+        "showroom_81mm_mortar_US",
+        "showroom_A222_Bereg_SOV",
+        "showroom_AEC_Militant_UK",
+        "showroom_AIFV_B_50_BEL",
+        "showroom_AIFV_B_50_NL",
+        "showroom_AIFV_B_C25_BEL",
+        "showroom_AIFV_B_C25_NL",
+        "showroom_AIFV_B_CMD_BEL",
+        "showroom_AIFV_B_CMD_NL",
+        "showroom_AIFV_B_Cargo_NL",
+        "showroom_AIFV_B_MILAN_BEL",
+        "showroom_AIFV_B_Radar_NL",
+        "showroom_AIFV_B_TOW_NL",
+        "showroom_AML_60_FR",
+        "showroom_AML_60_Gendarmerie_FR",
+        "showroom_AML_90_CMD_FR",
+        "showroom_AML_90_FR",
+        "showroom_AML_90_Reserve_FR"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "showroom_2K11_KRUG_DDR",
+        "showroom_2K11_KRUG_POL",
+        "showroom_2K11_KRUG_SOV",
+        "showroom_2K11_KRUG_TCH",
+        "showroom_2K12_KUB_DDR"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "HasServants": {
+      "count": 2485,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "false",
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "false",
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "DefaultSkillList": {
+      "count": 781,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TransportedTexture": {
+      "count": 970,
+      "types": [
+        "double_quoted_string"
+      ],
+      "optionSetValues": [
+        "UseInGame_Transport_APC",
+        "UseInGame_Transport_ATGM",
+        "UseInGame_Transport_ATGun",
+        "UseInGame_Transport_COMMAND",
+        "UseInGame_Transport_HMG",
+        "UseInGame_Transport_LAAD",
+        "UseInGame_Transport_Mortar",
+        "UseInGame_Transport_RECO",
+        "UseInGame_Transport_REGINF",
+        "UseInGame_Transport_Support",
+        "UseInGame_Transport_assault",
+        "UseInGame_Transport_flak",
+        "UseInGame_Transport_howitzer",
+        "UseInGame_Transport_supply"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "UseInGame_Transport_Mortar",
+        "UseInGame_Transport_ATGun",
+        "UseInGame_Transport_REGINF",
+        "UseInGame_Transport_ATGM",
+        "UseInGame_Transport_COMMAND"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TransportedSoldier": {
+      "count": 970,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "81mm_mortar_Aero_US",
+        "81mm_mortar_CAN",
+        "81mm_mortar_CLU_UK",
+        "81mm_mortar_Guards_UK",
+        "81mm_mortar_NG_US",
+        "81mm_mortar_Para_UK",
+        "81mm_mortar_UK",
+        "81mm_mortar_US",
+        "AT_2A45_SprutB_SOV",
+        "AT_D44_85mm_DDR",
+        "AT_D44_85mm_POL",
+        "AT_D44_85mm_VDV_SOV",
+        "AT_D48_85mm_POL",
+        "AT_Group_Gurkhas_UK",
+        "AT_Group_TA_UK",
+        "AT_KSM65_100mm_SOV",
+        "AT_M53_100mm_TCH",
+        "AT_T12R_Ruta_SOV",
+        "AT_T12_Rapira_DDR",
+        "AT_T12_Rapira_SOV",
+        "AT_ZiS2_57mm_DDR",
+        "AT_vz52_85mm_DDR",
+        "AT_vz52_85mm_TCH",
+        "AT_vz59_RCL_Vysadkar_TCH",
+        "ATteam_Fagot_DDR",
+        "ATteam_Fagot_FJ_DDR",
+        "ATteam_Fagot_Gvardeitsy_SOV",
+        "ATteam_Fagot_SOV",
+        "ATteam_Fagot_TCH",
+        "ATteam_ITOW_NG_US",
+        "ATteam_ITOW_NL",
+        "ATteam_ITOW_US",
+        "ATteam_KonkursM_TTsko_SOV",
+        "ATteam_Konkurs_DDR",
+        "ATteam_Konkurs_Gvardeitsy_SOV",
+        "ATteam_Konkurs_SOV",
+        "ATteam_Konkurs_TCH",
+        "ATteam_Konkurs_TTsko_SOV",
+        "ATteam_Milan_1_BEL",
+        "ATteam_Milan_1_FR",
+        "ATteam_Milan_1_RFA",
+        "ATteam_Milan_1_UK",
+        "ATteam_Milan_1_para_BEL",
+        "ATteam_Milan_1_para_FR",
+        "ATteam_Milan_2_BEL",
+        "ATteam_Milan_2_FR",
+        "ATteam_Milan_2_Guards_UK",
+        "ATteam_Milan_2_Legion_FR",
+        "ATteam_Milan_2_RFA",
+        "ATteam_Milan_2_RIMa_FR"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "81mm_mortar_Aero_US",
+        "81mm_mortar_CAN",
+        "81mm_mortar_CLU_UK",
+        "81mm_mortar_Guards_UK",
+        "81mm_mortar_NG_US"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "NbSeatsOccupied": {
+      "count": 970,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 1,
+      "examples": [
+        "1"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TimeToLoad": {
+      "count": 970,
+      "types": [
+        "number",
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0,
+      "max": 0,
+      "examples": [
+        "0",
+        "CanonsLoadingTime"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "IsTowable": {
+      "count": 970,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "false",
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "false",
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "DeploymentShiftGRU": {
+      "count": 507,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 2473.49823322,
+      "max": 3533.56890459,
+      "examples": [
+        "3533.56890459",
+        "2473.49823322"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SupplyDescriptor": {
+      "count": 89,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/GFX/Weapon/StandardSupply"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SupplyCapacity": {
+      "count": 89,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 300,
+      "max": 6000,
+      "examples": [
+        "2000",
+        "600",
+        "1500",
+        "500",
+        "1000"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SupplyPriority": {
+      "count": 89,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 10,
+      "examples": [
+        "4",
+        "8",
+        "5",
+        "9",
+        "6"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TransportableTagSet": {
+      "count": 345,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "["
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "NbSeatsAvailable": {
+      "count": 345,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 1,
+      "examples": [
+        "1"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "WreckUnloadPhysicalDamageBonus": {
+      "count": 345,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "WreckUnloadDamageBonus_Default_Physical",
+        "WreckUnloadDamageBonus_Chopper_Physical"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "WreckUnloadSuppressDamageBonus": {
+      "count": 345,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "WreckUnloadDamageBonus_Default_Suppress",
+        "WreckUnloadDamageBonus_Chopper_Suppress"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "WreckUnloadStunDamageBonus": {
+      "count": 345,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "WreckUnloadDamageBonus_Default_Stun",
+        "WreckUnloadDamageBonus_Chopper_Stun"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "LoadRadiusGRU": {
+      "count": 345,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 70,
+      "max": 70,
+      "examples": [
+        "70"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "InfluenceStrength": {
+      "count": 285,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 1,
+      "examples": [
+        "1"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MinimumInfluenceStrength": {
+      "count": 285,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1,
+      "max": 1,
+      "examples": [
+        "1"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "StrengthDecayPerSecond": {
+      "count": 285,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 0.01,
+      "max": 0.01,
+      "examples": [
+        "0.01"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "PreventsDecayInZone": {
+      "count": 285,
+      "types": [
+        "boolean"
+      ],
+      "optionSetValues": [
+        "true"
+      ],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "true"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "VehicleSizeInMeter": {
+      "count": 141,
+      "types": [
+        "inline_array"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "[9.0, 3.0]",
+        "[8.0, 3.0]",
+        "[6.0, 3.0]",
+        "[3.0, 2.0]",
+        "[6.0, 2.0]"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SoldierCount": {
+      "count": 585,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 2,
+      "max": 16,
+      "examples": [
+        "4",
+        "12",
+        "10",
+        "9",
+        "13"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SquadDataDescriptor": {
+      "count": 585,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/SoldierSquadDataDescriptor"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SoldierBlackHoleKey": {
+      "count": 585,
+      "types": [
+        "single_quoted_string"
+      ],
+      "optionSetValues": [
+        "AT_Group_Gurkhas_UK",
+        "AT_Group_TA_UK",
+        "AeroEngineer_CMD_US",
+        "AeroEngineers_US",
+        "AeroRifles_AB_US",
+        "AeroRifles_AT4_US",
+        "AeroRifles_CMD_US",
+        "AeroRifles_Dragon_US",
+        "AeroRifles_US",
+        "Aero_half_AT4_US",
+        "Aero_half_CMD_US",
+        "Aero_half_Dragon_US",
+        "Airborne_CMD_US",
+        "Airborne_Dragon_US",
+        "Airborne_Engineer_CMD_US",
+        "Airborne_Engineers_Flash_US",
+        "Airborne_Engineers_US",
+        "Airborne_HMG_US",
+        "Airborne_MP_RCL_US",
+        "Airborne_MP_US",
+        "Airborne_Scout_US",
+        "Airborne_US",
+        "Airborne_half_Dragon_US",
+        "Airborne_half_LAW_US",
+        "Airmobile_CMD_UK",
+        "Airmobile_MILAN_UK",
+        "Airmobile_Mot_CMD_UK",
+        "Airmobile_Mot_UK",
+        "Airmobile_TA_UK",
+        "Airmobile_UK",
+        "Alfa_Group_SOV",
+        "BGS_RFA",
+        "BGS_hvy_RFA",
+        "BorderGuard_CMD_TCH",
+        "BorderGuard_Scout_TCH",
+        "BorderGuard_TCH",
+        "ChasseurArdennais_BEL",
+        "ChasseurArdennais_CMD_BEL",
+        "Chasseurs_CMD_FR",
+        "Chasseurs_FR",
+        "Commando_CMD_NL",
+        "Commando_NL",
+        "Commandos_Air_FR",
+        "Commandos_CMD_POL",
+        "Commandos_CRAP_Para_FR",
+        "Commandos_FR",
+        "Commandos_Legion_FR",
+        "Commandos_POL",
+        "Commandos_Para_CMD_POL",
+        "Commandos_Para_POL"
+      ],
+      "optionSetValuesTruncated": true,
+      "min": null,
+      "max": null,
+      "examples": [
+        "AT_Group_Gurkhas_UK",
+        "AT_Group_TA_UK",
+        "AeroEngineer_CMD_US",
+        "AeroEngineers_US",
+        "AeroRifles_AB_US"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MimeticDescriptor": {
+      "count": 585,
+      "types": [
+        "unknown"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "Descriptor_Unit_MimeticUnit"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "WorldFloorProxy": {
+      "count": 215,
+      "types": [
+        "resource_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "$/M3D/Scene/WorldFloorForHelicoProxy"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "UpwardSpeedInKmph": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 45,
+      "max": 135,
+      "examples": [
+        "72",
+        "90",
+        "135",
+        "54",
+        "113"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TorqueManoeuvrability": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 60,
+      "max": 240,
+      "examples": [
+        "160",
+        "200",
+        "220",
+        "240",
+        "120"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "CyclicManoeuvrability": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 80,
+      "max": 260,
+      "examples": [
+        "200",
+        "260",
+        "160",
+        "80",
+        "120"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MaxInclination": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 60,
+      "max": 89,
+      "examples": [
+        "89",
+        "70",
+        "60"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "GFactorLimit": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 1.8,
+      "max": 3.5,
+      "examples": [
+        "2.5",
+        "2",
+        "3.5",
+        "3",
+        "2.2"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "RotorArea": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 85,
+      "max": 800,
+      "examples": [
+        "130",
+        "380",
+        "140",
+        "168",
+        "85"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "Mass": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 594,
+      "max": 16500,
+      "examples": [
+        "1188",
+        "4950",
+        "1419",
+        "2805",
+        "594"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "FlyingAltitudeGRU": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 106,
+      "max": 106,
+      "examples": [
+        "106"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "NearGroundFlyingAltitudeGRU": {
+      "count": 215,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 14,
+      "max": 26,
+      "examples": [
+        "17",
+        "26",
+        "19",
+        "24",
+        "14"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "ProjectileSpeed": {
+      "count": 382,
+      "types": [
+        "inline_array"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "[~/VitesseInitialFlare_Avion, ~/VitesseInitialFlare_Avion, ~/VitesseInitialFlare_Avion]"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "DistanceActivationGRU": {
+      "count": 382,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/DistanceActivationFlare_AvionGRU"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TimeBetweenFlare": {
+      "count": 382,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/TempsEntreLancementFlare_Avion"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "MinimalTimeBetweenFlare": {
+      "count": 382,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/TempsMinimalEntreLancementFlare_Avion"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "BonusTimeBetweenFlareByProjectile": {
+      "count": 382,
+      "types": [
+        "local_ref"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": null,
+      "max": null,
+      "examples": [
+        "~/TempsBonusLancementFlareParArme_Avion"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "AltitudeGRU": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 350,
+      "max": 1400,
+      "examples": [
+        "525",
+        "500",
+        "1230",
+        "1050",
+        "775"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "AltitudeMinGRU": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 50,
+      "max": 175,
+      "examples": [
+        "50",
+        "100",
+        "175"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "SpeedInKmph": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 200,
+      "max": 1325,
+      "examples": [
+        "400",
+        "650",
+        "1025",
+        "1000",
+        "500"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "AgilityRadiusGRU": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 450,
+      "max": 3500,
+      "examples": [
+        "530",
+        "1050",
+        "1550",
+        "1300",
+        "3500"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "PitchAngleDegree": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 17,
+      "max": 34,
+      "examples": [
+        "17",
+        "34"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "RollAngleDegree": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 45,
+      "max": 70,
+      "examples": [
+        "45",
+        "70",
+        "60"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "RollSpeedDegreePerSecond": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 85,
+      "max": 120,
+      "examples": [
+        "120",
+        "105",
+        "95",
+        "85",
+        "90"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "EvacAngleDegree": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 5,
+      "max": 5,
+      "examples": [
+        "5"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "EvacuationTime": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 8,
+      "max": 12,
+      "examples": [
+        "12",
+        "8"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    },
+    "TravelDuration": {
+      "count": 330,
+      "types": [
+        "number"
+      ],
+      "optionSetValues": [],
+      "optionSetValuesTruncated": false,
+      "min": 2,
+      "max": 12,
+      "examples": [
+        "12",
+        "11",
+        "10",
+        "2",
+        "3"
+      ],
+      "sources": [
+        "top_level"
+      ]
+    }
+  },
+  "modules": {
+    "TFormationModuleDescriptor": {
+      "count": 1940,
+      "inlineFields": {
+        "TypeUnitFormation": {
+          "count": 1940,
+          "types": [
+            "single_quoted_string"
+          ],
+          "optionSetValues": [
+            "Artillerie",
+            "Char",
+            "Reconnaissance",
+            "Supply"
+          ],
+          "optionSetValuesTruncated": false,
+          "min": null,
+          "max": null,
+          "examples": [
+            "Artillerie",
+            "Supply",
+            "Char",
+            "Reconnaissance"
+          ]
+        }
+      }
+    },
+    "TDangerousnessModuleDescriptor": {
+      "count": 1821,
+      "inlineFields": {
+        "Dangerousness": {
+          "count": 1821,
+          "types": [
+            "number"
+          ],
+          "optionSetValues": [],
+          "optionSetValuesTruncated": false,
+          "min": -6,
+          "max": 211,
+          "examples": [
+            "39",
+            "21",
+            "18",
+            "6",
+            "27"
+          ]
+        }
+      }
+    },
+    "TRoutModuleDescriptor": {
+      "count": 2485,
+      "inlineFields": {
+        "MoralLevel": {
+          "count": 2485,
+          "types": [
+            "number"
+          ],
+          "optionSetValues": [],
+          "optionSetValuesTruncated": false,
+          "min": 0,
+          "max": 60,
+          "examples": [
+            "0",
+            "60"
+          ]
+        }
+      }
+    },
+    "TMissileCarriageModuleDescriptor": {
+      "count": 698,
+      "inlineFields": {
+        "Connoisseur": {
+          "count": 698,
+          "types": [
+            "resource_ref"
+          ],
+          "optionSetValues": [],
+          "optionSetValuesTruncated": false,
+          "min": null,
+          "max": null,
+          "examples": [
+            "$/GFX/Depiction/MissileCarriage_2K11_KRUG_DDR",
+            "$/GFX/Depiction/MissileCarriage_2K11_KRUG_POL",
+            "$/GFX/Depiction/MissileCarriage_2K11_KRUG_SOV",
+            "$/GFX/Depiction/MissileCarriage_2K11_KRUG_TCH",
+            "$/GFX/Depiction/MissileCarriage_2K12_KUB_DDR"
+          ]
+        }
+      }
+    },
+    "TUnitUpkeepModuleDescriptor": {
+      "count": 2485,
+      "inlineFields": {
+        "UpkeepPercentage": {
+          "count": 2485,
+          "types": [
+            "number"
+          ],
+          "optionSetValues": [],
+          "optionSetValuesTruncated": false,
+          "min": 0,
+          "max": 1,
+          "examples": [
+            "1",
+            "0",
+            "0.5"
+          ]
+        }
+      }
+    }
+  }
+}
