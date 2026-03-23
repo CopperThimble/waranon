@@ -4,6 +4,7 @@ import { exportMod } from "../logic/exportMod";
 import { parseCountriesInfoEntries } from "../generators/country";
 import { parseDivisionEntries } from "../generators/divisions";
 import { buildLocalizationMap } from "../generators/localization";
+import CustomDivisionBuilder from "./CustomDivisionBuilder";
 
 const categories = ["log", "inf", "art", "tnk", "rec", "aa", "hel", "air"];
 
@@ -12,8 +13,18 @@ export default function DivisionBuilder({
   setProject,
   showCountryEditor,
   setShowCountryEditor,
+  showDivisionEditor,
+  setShowDivisionEditor,
 }) {
   const division = project.division;
+
+  const filteredCustomDivisions = useMemo(() => {
+    if (!division.countryId) return [];
+
+    return (project.customDivisions || []).filter(
+      (entry) => entry.countryId === division.countryId,
+    );
+  }, [project.customDivisions, division.countryId]);
 
   const localizationMap = useMemo(() => {
     try {
@@ -65,6 +76,15 @@ export default function DivisionBuilder({
         [field]: value,
       },
     }));
+  }
+
+  function handleDivisionChange(value) {
+    if (value === "__ADD_CUSTOM_DIVISION__") {
+      setShowDivisionEditor(true);
+      return;
+    }
+
+    updateDivisionField("divisionId", value);
   }
 
   function getDivisionFriendlyName(entry) {
@@ -158,9 +178,7 @@ export default function DivisionBuilder({
             <label style={styles.label}>Base Division</label>
             <select
               value={division.divisionId || ""}
-              onChange={(e) =>
-                updateDivisionField("divisionId", e.target.value)
-              }
+              onChange={(e) => handleDivisionChange(e.target.value)}
               style={styles.select}
               disabled={!division.countryId}
             >
@@ -175,6 +193,16 @@ export default function DivisionBuilder({
                   {getDivisionFriendlyName(entry)}
                 </option>
               ))}
+
+              {filteredCustomDivisions.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.cfgName} (custom)
+                </option>
+              ))}
+
+              <option value="__ADD_CUSTOM_DIVISION__">
+                + Add Custom Division
+              </option>
             </select>
           </div>
 
@@ -237,6 +265,34 @@ export default function DivisionBuilder({
                   }));
 
                   setShowCountryEditor(false);
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {showDivisionEditor && (
+          <div style={styles.modal}>
+            <div style={styles.modalCard}>
+              <CustomDivisionBuilder
+                divisionsText={project.files.divisionsText}
+                localizationText={project.files.localizationText}
+                onCancel={() => setShowDivisionEditor(false)}
+                onSave={(customDivision) => {
+                  setProject((prev) => ({
+                    ...prev,
+                    customDivisions: [
+                      ...(prev.customDivisions || []),
+                      customDivision,
+                    ],
+                    division: {
+                      ...prev.division,
+                      countryId: customDivision.countryId,
+                      divisionId: customDivision.id,
+                    },
+                  }));
+
+                  setShowDivisionEditor(false);
                 }}
               />
             </div>
