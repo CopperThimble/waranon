@@ -13,3 +13,12 @@ Thumbs.db
 
 # VS Code settings (optional)
 .vscode/
+# Local WARNO game data / sample mods (large, Eugen-owned)
+SampleMods/
+
+# Build output
+dist/
+
+# Output of npm run test:export
+test-output/
+__pycache__/

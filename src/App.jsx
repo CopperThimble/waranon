@@ -1,187 +1,98 @@
-import { useMemo, useState } from "react";
-import "./App.css";
-import DivisionBuilder from "./components/DivisionBuilder";
-import uiSpecificCountriesText from "./templates/UISpecificCountriesInfos.txt?raw";
-import divisionsText from "./templates/Divisions.txt?raw";
-import localizationText from "./templates/localizationexample.txt?raw";
-import divisionRulesText from "./templates/DivisionRules.txt?raw";
-import unitsText from "./templates/UniteDescriptor.txt?raw";
-import deckSerializerText from "./templates/DeckSerializer.txt?raw";
-import {
-  parseDivisionRuleEntries,
-  findDivisionRuleById,
-  cloneDivisionRule,
-  addUnitToDivisionRule,
-  removeUnitFromDivisionRule,
-  clearDivisionRule,
-} from "./generators/divisionRules";
+import { useEffect, useState } from "react";
+import { loadGameData } from "./lib/gameData";
+import AbilitiesPage from "./pages/AbilitiesPage";
+import AlliancesPage from "./pages/AlliancesPage";
+import DivisionsPage from "./pages/DivisionsPage";
+import ExportPage from "./pages/ExportPage";
+import NationsPage from "./pages/NationsPage";
+import ProjectPage from "./pages/ProjectPage";
+import UnitsPage from "./pages/UnitsPage";
+import { ProjectProvider } from "./state/ProjectContext";
+import { useProject } from "./state/useProject";
 
-function createEmptyProject() {
-  return {
-    meta: { modName: "sampleMod", version: "0.1.0" },
-    division: {
-      baseDivision: "",
-      alliance: "NATO",
-      countryId: "",
-      divisionName: "",
-      modeSuffix: "multi",
-      descriptorExportName: "",
-      cfgName: "",
-      descriptorId: "",
-      divisionNameToken: "",
-      summaryTextToken: "",
-      historyTextToken: "",
-      deckBudget: 50,
-      interfaceOrder: null,
-      divisionTags: [],
-      typeToken: "",
-      divisionRule: "",
-      costMatrix: "",
-      emblemTexture: "",
-      standoutUnits: [],
-      useCustomEmblem: false,
-      emblemFile: null,
-      emblemPreviewUrl: "",
-    },
-    customCountries: [],
-    customDivisions: [],
-    customDivisionRules: [],
-    unitsByCategory: {
-      log: [],
-      inf: [],
-      art: [],
-      tnk: [],
-      rec: [],
-      aa: [],
-      hel: [],
-      air: [],
-    },
-    customUnits: [],
-    customWeapons: [],
-    customAmmo: [],
-    files: {
-      uiSpecificCountriesText,
-      divisionsText,
-      localizationText,
-      divisionRulesText,
-      unitsText,
-      deckSerializerText,
-    },
-    validation: { errors: [], warnings: [] },
-  };
-}
+const PAGES = [
+  { id: "overview", label: "Overview", icon: "◎", component: ProjectPage },
+  { id: "alliances", label: "Alliances", icon: "⚑", component: AlliancesPage, count: (p) => p.alliances.length },
+  { id: "nations", label: "Nations", icon: "⚐", component: NationsPage, count: (p) => p.nations.length },
+  { id: "units", label: "Units", icon: "▣", component: UnitsPage, count: (p) => p.units.length },
+  { id: "abilities", label: "Abilities", icon: "✦", component: AbilitiesPage, count: (p) => (p.abilities || []).length },
+  { id: "divisions", label: "Divisions", icon: "◆", component: DivisionsPage, count: (p) => p.divisions.length },
+  { id: "export", label: "Export", icon: "⇩", component: ExportPage },
+];
+
+const pageFromHash = () => {
+  const id = window.location.hash.replace(/^#\/?/, "");
+  return PAGES.some((p) => p.id === id) ? id : "overview";
+};
 
 export default function App() {
-  const [project, setProject] = useState(createEmptyProject());
-  const [showCountryEditor, setShowCountryEditor] = useState(false);
-  const [showDivisionEditor, setShowDivisionEditor] = useState(false);
-  const [showUnitEditor, setShowUnitEditor] = useState(false);
-  const [editingUnitId, setEditingUnitId] = useState("");
+  const [game, setGame] = useState(null);
+  const [error, setError] = useState(null);
 
-  const parsedDivisionRules = useMemo(
-    () => parseDivisionRuleEntries(project.files.divisionRulesText),
-    [project.files.divisionRulesText],
-  );
+  useEffect(() => {
+    loadGameData().then(setGame, (err) => setError(err.message));
+  }, []);
 
-  const allDivisionRules = useMemo(() => {
-    const custom = project.customDivisionRules || [];
-    const customIds = new Set(custom.map((r) => r.id));
-
-    return [
-      ...parsedDivisionRules.filter((r) => !customIds.has(r.id)),
-      ...custom,
-    ];
-  }, [parsedDivisionRules, project.customDivisionRules]);
-
-  function updateCurrentDivisionRule(transform) {
-    setProject((prev) => {
-      const currentRuleId = prev.division.divisionRule;
-      if (!currentRuleId) return prev;
-
-      const existingCustomRule = (prev.customDivisionRules || []).find(
-        (r) => r.id === currentRuleId,
-      );
-
-      if (existingCustomRule) {
-        return {
-          ...prev,
-          customDivisionRules: prev.customDivisionRules.map((r) =>
-            r.id === currentRuleId ? transform(r) : r,
-          ),
-        };
-      }
-
-      const parsedBaseRule = parsedDivisionRules.find(
-        (r) => r.id === currentRuleId,
-      );
-      if (!parsedBaseRule) return prev;
-
-      const newCustomRule = transform(
-        cloneDivisionRule(parsedBaseRule, currentRuleId),
-      );
-
-      return {
-        ...prev,
-        customDivisionRules: [
-          ...(prev.customDivisionRules || []),
-          newCustomRule,
-        ],
-      };
-    });
-  }
-
-  function handleClearCurrentDivisionRule() {
-    updateCurrentDivisionRule((rule) => clearDivisionRule(rule));
-  }
-
-  function handleAddUnitToCurrentDivisionRule(unitId) {
-    updateCurrentDivisionRule((rule) => addUnitToDivisionRule(rule, unitId));
-  }
-
-  function handleRemoveUnitFromCurrentDivisionRule(unitId) {
-    updateCurrentDivisionRule((rule) => removeUnitFromDivisionRule(rule, unitId));
-  }
-
-  function createDivisionRuleFromBase({ newRuleId, baseRuleId }) {
-    setProject((prev) => {
-      const baseRule =
-        findDivisionRuleById(parsedDivisionRules, baseRuleId) ||
-        findDivisionRuleById(prev.customDivisionRules || [], baseRuleId);
-
-      if (!baseRule) return prev;
-
-      const clonedRule = cloneDivisionRule(baseRule, newRuleId);
-
-      return {
-        ...prev,
-        customDivisionRules: [
-          ...(prev.customDivisionRules || []).filter(
-            (r) => r.id !== newRuleId,
-          ),
-          clonedRule,
-        ],
-        division: { ...prev.division, divisionRule: newRuleId },
-      };
-    });
-  }
+  if (error) return <div className="boot boot-error">Couldn't load game data: {error}</div>;
+  if (!game) return <div className="boot">Loading WARNO game data…</div>;
 
   return (
-    <DivisionBuilder
-      project={project}
-      setProject={setProject}
-      showCountryEditor={showCountryEditor}
-      setShowCountryEditor={setShowCountryEditor}
-      showDivisionEditor={showDivisionEditor}
-      setShowDivisionEditor={setShowDivisionEditor}
-      showUnitEditor={showUnitEditor}
-      setShowUnitEditor={setShowUnitEditor}
-      editingUnitId={editingUnitId}
-      setEditingUnitId={setEditingUnitId}
-      divisionRules={allDivisionRules}
-      onClearDivisionRule={handleClearCurrentDivisionRule}
-      onAddUnitToDivisionRule={handleAddUnitToCurrentDivisionRule}
-      onRemoveUnitFromDivisionRule={handleRemoveUnitFromCurrentDivisionRule}
-      onCreateDivisionRuleFromBase={createDivisionRuleFromBase}
-    />
+    <ProjectProvider game={game}>
+      <Shell />
+    </ProjectProvider>
   );
+}
+
+function Shell() {
+  const { project, saveState } = useProject();
+  const [page, setPage] = useState(pageFromHash);
+
+  useEffect(() => {
+    const onHash = () => setPage(pageFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const navigate = (id) => {
+    window.location.assign(`#/${id}`);
+    window.scrollTo({ top: 0 });
+  };
+  const Page = PAGES.find((p) => p.id === page).component;
+
+  return (
+    <div className="shell">
+      <nav className="sidebar">
+        <div className="brand">
+          <span className="brand-mark">W</span>
+          <span>
+            <span className="brand-name">Waranon</span>
+            <span className="brand-sub">WARNO mod builder</span>
+          </span>
+        </div>
+        <div className="sidebar-project" title={project.name}>
+          {project.name}
+          <SaveIndicator state={saveState} />
+        </div>
+        <ul className="nav">
+          {PAGES.map((p) => (
+            <li key={p.id}>
+              <button type="button" className={page === p.id ? "active" : ""} onClick={() => navigate(p.id)}>
+                <span className="nav-icon">{p.icon}</span>
+                <span className="nav-label">{p.label}</span>
+                {p.count && <span className="nav-count">{p.count(project)}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <main className="main">
+        <Page key={`${project.id}-${page}`} navigate={navigate} />
+      </main>
+    </div>
+  );
+}
+
+function SaveIndicator({ state }) {
+  const label = { saved: "Saved", unsaved: "Saving…", saving: "Saving…", error: "Not saved!", loading: "" }[state];
+  return <span className={`save save-${state}`}>{label}</span>;
 }
