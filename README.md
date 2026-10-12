@@ -1,52 +1,72 @@
-# Project Summary
+# Waranon: WARNO mod builder
 
-## App
-WARNO mod webapp for building/exporting mod files.
+A browser app for building WARNO mods without hand-editing NDF: custom **alliances**, **nations** (flag, name, voice lines), **units** (cloned from vanilla, renamed, rebalanced, custom icon) and **divisions** (rosters, transports, emblem). Projects autosave in the browser (IndexedDB) and can be exported or imported as `.waranon.json` files.
 
-## Stack
-- React
-- Vite
-- GitHub Pages (https://copperthimble.github.io/waranon/)
-- JSZip
-- Zustand planned for state persistence (TBD)
+## How export works
 
-## Current Features
-- Country parser populates dropdown
-- Add custom country flow
-- Flag display/adding option
-- Export functionality using exportMod.js
-- Generates UISpecificCountriesInfos.ndf updates
+1. In your WARNO install, run `Mods/CreateNewMod.bat MyMod`. That creates a mod *source* folder holding a full editable copy of the game data.
+2. On the Export page, pick that folder. The app reads the game files in it and patches them, so the output always matches *your* game version. In Chrome or Edge it can write the files in place; other browsers get a zip.
+3. Run `GenerateMod.bat`, then `LaunchGameDevMode.bat` to test.
 
-## Important Files
-- src/App.jsx
-- src/export/exportMod.js
-- src/generators/country.js
+Everything the builder adds is fenced with `// >>> waranon:<id>` comments, so re-exporting replaces the previous output instead of duplicating it.
 
-## Decisions Made
-- Use parsed countries for dropdown
-- Keep export functionality
-- Likely move to Zustand + persist for project state
+Files touched: `UISpecificCountriesInfos`, `UniteDescriptor`, `WeaponDescriptor`, `ButtonTexturesUnites`, `AcknowDescriptors`, `Divisions`, `DivisionRules`, `DivisionCostMatrix`, `DeckSerializer`, `DivisionTextures`, the mod's localisation CSVs, plus new `UnitNames_<TAG>.ndf` and PNGs under `GameData/Assets/2D/Interface/...`.
 
-## Next Steps
-1. Improve state management with Zustand persist
-2. Define project shape for saved state
-3. Refactor export pipeline to read from central store
- 
-# React + Vite
+## Development
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+```sh
+npm install
+npm run dev          # http://localhost:5173/waranon/
+npm run lint
+npm run build
+```
 
-Currently, two official plugins are available:
+With `SampleMods/modexample` present (a copy of a CreateNewMod folder; gitignored), the dev server exposes it, and the Export page shows a **Use SampleMods/modexample (dev)** button.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Game data
 
-## React Compiler
+The app loads `public/data/game-data.json`, a compact catalog extracted from vanilla NDF. Regenerate it after a game update:
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+```sh
+npm run data          # scripts/build_game_data.py  -> public/data/game-data.json
+npm run data:ranges   # scripts/extract_stat_ranges.py -> data/stat_ranges.json (every field's min/max)
+npm run test:export   # end-to-end exporter check against SampleMods/modexample (incl. idempotency)
+npm run test:rules    # weapon loadout rules (shared ammo boxes, mount types)
+```
 
-Note: This will impact Vite dev & build performances.
+Unit portraits live in `images/portraits/{NATO,PACT}/*.webp`, mirroring the game's `GameData/Assets/2D/Interface/Common/UnitsIcons/` layout. They are made from a local PNG extraction in `images/unit-icons/` (gitignored, with `portraits_manifest.json`) by `python scripts/convert_portraits.py` (needs `pip install pillow`; 396 MB of PNG becomes about 45 MB of WebP). Each unit's `portrait` field in the catalog is resolved through its button texture in `ButtonTexturesUnites.ndf`.
 
-## Expanding the ESLint configuration
+Vanilla unit and weapon names come from `data/vanilla_localisation.csv`, which is from an older patch, so divisions added since then fall back to their config names.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Layout
+
+```
+src/lib/        exportMod.js (patching), ndf.js (text helpers), validate.js, model.js,
+                gameData.js, storage.js (IndexedDB), images.js, modFolder.js (folder access)
+src/state/      ProjectContext (load/autosave/CRUD), useProject
+src/pages/      Overview, Alliances, Nations, Units, Divisions, Export
+src/components/ ui primitives, UnitPicker, flags/thumbnails
+scripts/        data extraction (Python), exporter test (Node)
+```
+
+## Engine constraints worth knowing
+
+- Only **two sides** exist (`TWargameCoalition` is NATO=0 / PACT=1, mirrored from C++). Custom alliances fight on one of them.
+- Armor values are indices into fixed tables (`DamageResistance.ndf`); for example, heavy armor (`blindage`) has 30 levels. The unit editor enforces these.
+- Cloned units keep the base unit's `MimeticName`/model, so they reuse its 3D model, animations and depiction.
+- Weapons added in the builder (on an existing turret, or as a coaxial gun slaved to one) need a muzzle point and firing effect, so the unit gets its own copy of the vehicle depiction (`DepictionVehicles.ndf` + `DepictionGhosts.ndf`) under a new BlackHoleKey. Ground vehicles only for now; vanilla limits of 6 weapons, 5 turrets and 5 ammo boxes per unit are enforced.
+- Ammo shot intervals and aim times must be multiples of the 0.1 s game tick, and turret angles are written at full precision (the engine checks elevation against exact pi/2).
+
+## Legal and game art
+
+Waranon is a free fan tool, not affiliated with or endorsed by Eugen Systems. WARNO game data and artwork are © Eugen Systems; the app shows this attribution and a contact link (set in `waranon.config.json`) on every page.
+
+All game artwork lives in `images/` and can be switched off in one step:
+
+```sh
+npm run art -- status
+npm run art -- off   # hide all game art in the app + untrack it from git (local files kept)
+npm run art -- on    # restore both
+```
+
+With art off, the build contains no game images (pictures fall back to placeholders). CI can force it with `WARANON_GAME_ART=off`. Untracking removes the art from the branch and the deployed site once pushed, but not from git history. `images/unit-icons/` (locally extracted portraits) is gitignored separately and is never published by these commands.
