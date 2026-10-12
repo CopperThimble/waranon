@@ -119,7 +119,7 @@ export default function ImageCropper({ source, spec, onApply, onCancel }) {
     <Modal
       title={`Crop: ${spec.label}`}
       onClose={onCancel}
-      size="lg"
+      size={W / H < 1.4 ? "md" : "lg"}
       footer={
         <>
           <Button onClick={onCancel}>Cancel</Button>
@@ -133,7 +133,8 @@ export default function ImageCropper({ source, spec, onApply, onCancel }) {
         <p className="error-text">{error}</p>
       ) : (
         <div className="cropper">
-          <div className="cropper-stage" style={{ aspectRatio: `${W} / ${H}`, maxWidth: W >= H ? "100%" : `${Math.round((420 * W) / H)}px` }}>
+          {/* fit the frame to the dialog: never taller than ~half the window, whatever the aspect ratio */}
+          <div className="cropper-stage" style={{ aspectRatio: `${W} / ${H}`, width: `min(100%, calc(var(--crop-max-h) * ${(W / H).toFixed(4)}))` }}>
             <canvas
               ref={canvas}
               width={W}

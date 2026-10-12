@@ -10,6 +10,7 @@ import GalleryPage from "./pages/GalleryPage";
 import NationsPage from "./pages/NationsPage";
 import ProjectPage from "./pages/ProjectPage";
 import UnitsPage from "./pages/UnitsPage";
+import VoicesPage from "./pages/VoicesPage";
 import { ProjectProvider } from "./state/ProjectContext";
 import { useProject } from "./state/useProject";
 
@@ -19,6 +20,7 @@ const PAGES = [
   { id: "nations", label: "Nations", icon: "⚐", component: NationsPage, count: (p) => p.nations.length },
   { id: "units", label: "Units", icon: "▣", component: UnitsPage, count: (p) => p.units.length },
   { id: "abilities", label: "Abilities", icon: "✦", component: AbilitiesPage, count: (p) => (p.abilities || []).length },
+  { id: "voices", label: "Voices", icon: "♪", component: VoicesPage, count: (p) => p.nations.reduce((n, x) => n + (x.voice?.clips?.length || 0), 0) },
   { id: "divisions", label: "Divisions", icon: "◆", component: DivisionsPage, count: (p) => p.divisions.length },
   { id: "balance", label: "Balance", icon: "⚖", component: BalancePage },
   { id: "export", label: "Export", icon: "⇩", component: ExportPage },

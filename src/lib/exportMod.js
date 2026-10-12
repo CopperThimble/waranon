@@ -14,9 +14,11 @@ import {
   addWeaponsToBlock,
   cloneAmmoBlock,
   cloneGhostRegistration,
+  cloneInfantryDepiction,
   cloneTacticRegistration,
   cloneUnitBlock,
   fireOperator,
+  setSquadKey,
   setUnitBlackHoleKey,
   patchWeaponBlock,
   serializeCapacity,
@@ -39,7 +41,8 @@ import {
 } from "./ndf.js";
 import { CUSTOM_NAMES, namesCsv, namesDicoNdf, namesDicoToken, parseNameList } from "./unitNames.js";
 import { validateProject } from "./validate.js";
-import { boxPlan, defaultFiringEffect, fireKind, normalizeWeapons, turretAnchors } from "./weapons.js";
+import { plannedClips, voiceBlocks } from "./voices.js";
+import { addKind, boxPlan, defaultFiringEffect, fireKind, normalizeWeapons, turretFireSource } from "./weapons.js";
 
 const G = "GameData/Generated";
 export const PATHS = {
@@ -59,6 +62,8 @@ export const PATHS = {
   ammoMissiles: `${G}/Gameplay/Gfx/AmmunitionMissiles.ndf`,
   depVehicles: `${G}/Gameplay/Gfx/Depictions/DepictionVehicles.ndf`,
   depGhosts: `${G}/Gameplay/Gfx/Depictions/DepictionGhosts.ndf`,
+  depAerial: `${G}/Gameplay/Gfx/Depictions/DepictionAerialUnits.ndf`,
+  depInfantry: `${G}/Gameplay/Gfx/Infanterie/DepictionInfantry.ndf`,
   effects: `${G}/Gameplay/Effects/EffetsSurUnite.ndf`,
   capacities: `${G}/Gameplay/Gfx/CapaciteList.ndf`,
   specialties: `${G}/UserInterface/UnitSpecialties.ndf`,
@@ -89,6 +94,8 @@ const CORE_FILES = [
   PATHS.specialtyTextures,
   PATHS.depVehicles,
   PATHS.depGhosts,
+  PATHS.depAerial,
+  PATHS.depInfantry,
 ];
 
 // Dictionaries every generated token is written to. The game looks some tokens up in
@@ -258,10 +265,19 @@ export async function buildModFiles({ project, game, source }) {
       textRows.push({ token: n.nameToken, text: n.name });
     }
 
-    // Voice lines: clone the acknowledgement sounds of a vanilla country.
-    const voiced = nations.filter((n) => n.voiceCountry);
+    // Voice lines: clone the acknowledgement sounds of a vanilla country, then apply the nation's own
+    // recorded clips (Voices page) on top, so they're part of every export.
+    const voiced = nations.filter((n) => n.voiceCountry || n.voice?.clips?.length);
+    for (const n of voiced) {
+      for (const clips of plannedClips(n).values()) {
+        for (const { clip, path } of clips) {
+          const asset = project.assets[clip.assetId];
+          if (asset?.blob) addFile(path, asset.blob, `Voice line: ${clip.category} / ${clip.action}`);
+        }
+      }
+    }
     if (voiced.length) {
-      await edit(PATHS.acknow, "Voice lines for new countries", (t) => cloneAcknowledgements(t, pid, voiced, warnings));
+      await edit(PATHS.acknow, "Voice lines for new countries", (t) => cloneAcknowledgements(t, pid, voiced, warnings, game));
     }
   }
 
@@ -344,15 +360,16 @@ export async function buildModFiles({ project, game, source }) {
     const weaponBlocks = [];
     const ammoBlocks = { [PATHS.ammo]: [], [PATHS.ammoMissiles]: [] };
     const ammoFile = (id) => (game.ammo[id]?.file === "AmmunitionMissiles" ? PATHS.ammoMissiles : PATHS.ammo);
-    const depictionJobs = []; // units with added weapons get their own copy of the vehicle depiction
+    const depictionJobs = []; // units with added weapons get their own copy of their depiction
     for (const r of resolvedUnits) {
       const span = findTopLevelBlock(unitsText, r.base.id);
       if (!span) throw new Error(`Base unit ${r.base.id} not found in your UniteDescriptor.ndf (different game version?)`);
       const loadout = r.base.weapon && game.weapons[r.base.weapon];
       const added = (loadout && normalizeWeapons(loadout, r.unit.weapons || {}).added) || [];
-      const depKey = added.length && r.base.blackHoleKey ? `WR_${r.stem}` : null;
+      const kind = added.length ? addKind(game, r.base) : null;
+      const depKey = kind ? `WR_${r.stem}` : null;
       let unitBlock = cloneUnitBlock(unitsText.slice(span.start, span.end), r, warnings, customNames);
-      if (depKey) unitBlock = setUnitBlackHoleKey(unitBlock, depKey);
+      if (depKey) unitBlock = kind === "infantry" ? setSquadKey(unitBlock, r.base.squadKey, depKey) : setUnitBlackHoleKey(unitBlock, depKey);
       unitBlocks.push(unitBlock);
 
       if (r.weapon) {
@@ -390,9 +407,9 @@ export async function buildModFiles({ project, game, source }) {
         if (added.length) {
           // new weapons take the slot numbers after the highest existing one
           const maxSlot = Math.max(0, ...loadout.turrets.flatMap((t) => t.mounted.map((m) => m.slot || 0)));
-          const plan = added.map((a, i) => ({ a, n: maxSlot + i + 1 }));
+          const plan = added.map((a, i) => ({ a, n: maxSlot + i + 1, donor: a.role ? game.infantryWeapons?.[a.ammo] : null }));
           weaponBlock = addWeaponsToBlock(weaponBlock, loadout, plan);
-          if (depKey) depictionJobs.push({ r, key: r.base.blackHoleKey, newKey: depKey, plan });
+          if (depKey) depictionJobs.push({ r, kind, key: kind === "infantry" ? r.base.squadKey : r.base.blackHoleKey, newKey: depKey, plan });
         }
         weaponBlocks.push(weaponBlock);
       }
@@ -404,31 +421,61 @@ export async function buildModFiles({ project, game, source }) {
       if (blocks.length) await edit(file, `${blocks.length} customised ammunition type(s)`, (t) => appendBlocks(t, blocks));
     }
 
-    if (depictionJobs.length) {
-      const dvText = working.get(PATHS.depVehicles).text;
+    // Vehicles and aircraft: copy the registration, add a fire operator per new weapon (from the
+    // turret's muzzle anchors or missile pylons) and its firing effect. Infantry: copy the squad's
+    // soldier depiction and give the new role its hand-held weapon, fire effect and pose.
+    const jobsOf = (k) => depictionJobs.filter((j) => j.kind === k);
+    for (const [k, path, regType] of [
+      ["vehicle", PATHS.depVehicles, "TacticVehicleDepictionRegistration"],
+      ["aerial", PATHS.depAerial, "TacticAerialDepictionRegistration"],
+    ]) {
+      const jobs = jobsOf(k);
+      if (!jobs.length) continue;
+      const depText = working.get(path).text;
       const ghostText = working.get(PATHS.depGhosts).text;
-      const dvBlocks = [];
+      const blocks = [];
       const ghostBlocks = [];
-      for (const j of depictionJobs) {
+      for (const j of jobs) {
         const operators = [];
         const actions = [];
         for (const { a, n } of j.plan) {
-          const anchors = turretAnchors(game, j.r.base, a.turret);
           const fx = a.fx || defaultFiringEffect(game, j.r.base, a.turret, a.ammo);
           const name = `DepictionOperator_${j.newKey}_Weapon${n}`;
-          dvBlocks.push(fireOperator(name, fireKind(game.ammo[a.ammo]), anchors, n));
+          blocks.push(fireOperator(name, fireKind(game.ammo[a.ammo]), turretFireSource(game, j.r.base, a.turret), n));
           operators.push(name);
           if (fx) actions.push([n, fx]);
         }
-        const registration = cloneTacticRegistration(dvText, j.key, j.newKey, operators, actions);
-        if (!registration) throw new Error(`Depiction ${j.key} not found in your DepictionVehicles.ndf (different game version?)`);
-        dvBlocks.push(registration);
-        const ghost = cloneGhostRegistration(ghostText, j.key, j.newKey);
-        if (ghost) ghostBlocks.push(ghost);
-        else warnings.push({ scope: "unit", id: j.r.unit.id, message: `${j.r.unit.name}: no placement ghost found for ${j.key}.` });
+        const registration = cloneTacticRegistration(depText, j.key, j.newKey, operators, actions, regType);
+        if (!registration) throw new Error(`Depiction ${j.key} not found in your ${path.split("/").pop()} (different game version?)`);
+        blocks.push(registration);
+        if (k === "vehicle") {
+          const ghost = cloneGhostRegistration(ghostText, j.key, j.newKey);
+          if (ghost) ghostBlocks.push(ghost);
+          else warnings.push({ scope: "unit", id: j.r.unit.id, message: `${j.r.unit.name}: no placement ghost found for ${j.key}.` });
+        }
       }
-      await edit(PATHS.depVehicles, `${depictionJobs.length} unit depiction(s) for added weapons`, (t) => appendBlocks(t, dvBlocks));
+      await edit(path, `${jobs.length} unit depiction(s) for added weapons`, (t) => appendBlocks(t, blocks));
       if (ghostBlocks.length) await edit(PATHS.depGhosts, `${ghostBlocks.length} placement ghost(s)`, (t) => appendBlocks(t, ghostBlocks));
+    }
+    const infJobs = jobsOf("infantry");
+    if (infJobs.length) {
+      const infText = working.get(PATHS.depInfantry).text;
+      const defs = [];
+      const entries = [];
+      const squads = [];
+      for (const j of infJobs) {
+        const roles = j.plan.filter(({ a }) => a.role).map(({ n, donor }) => ({ n, donor }));
+        const c = cloneInfantryDepiction(infText, j.key, j.newKey, roles);
+        if (!c) throw new Error(`Squad depiction ${j.key} not found in your DepictionInfantry.ndf (different game version?)`);
+        defs.push(c.defs);
+        entries.push(c.entry);
+        squads.push(c.squad);
+      }
+      await edit(PATHS.depInfantry, `${infJobs.length} squad depiction(s) for added soldier roles`, (t) => {
+        let out = appendBlocks(t, defs);
+        out = appendToList(out, /\bTTransportedInfantryCatalogEntries\s*\(\s*Catalog\s*=[^\n]*\n\s*Entries\s*=/, wrapRegion(pid, entries.join("\n")));
+        return appendToList(out, /\bUnitMimetics\s*=\s*MAP/, wrapRegion(pid, squads.join("\n")));
+      });
     }
 
     const iconUnits = resolvedUnits.filter((r) => r.unit.iconAssetId);
@@ -557,7 +604,7 @@ ${standout.map((u) => `        $/GFX/Unit/${u},`).join("\n")}
 
 // ── Voice lines ──────────────────────────────────────────────────────────────
 
-function cloneAcknowledgements(text, pid, nations, warnings) {
+function cloneAcknowledgements(text, pid, nations, warnings, game) {
   const blocks = [];
   const re = /\bTAcknowDescriptor\s*\(/g;
   let m;
@@ -565,24 +612,27 @@ function cloneAcknowledgements(text, pid, nations, warnings) {
     const open = m.index + m[0].length - 1;
     const close = matchClose(text, open);
     if (close < 0) break;
-    const country = /MotherCountry\s*=\s*'([^']*)'/.exec(text.slice(open, close))?.[1];
-    if (country) blocks.push({ start: m.index, end: close + 1, country });
+    const body = text.slice(open, close);
+    const country = /MotherCountry\s*=\s*'([^']*)'/.exec(body)?.[1];
+    const type = /TypeSpecific\s*=\s*TAcknowUnitType_(\w+)/.exec(body)?.[1];
+    const action = /Action\s*=\s*TAcknowUnitAction_(\w+)/.exec(body)?.[1];
+    if (country) blocks.push({ start: m.index, end: close + 1, country, type, action });
     re.lastIndex = close;
   }
   if (!blocks.length) return text;
 
   const clones = [];
   for (const n of nations) {
-    const src = blocks.filter((b) => b.country === n.voiceCountry);
-    if (!src.length) {
+    const src = n.voiceCountry ? blocks.filter((b) => b.country === n.voiceCountry) : [];
+    if (n.voiceCountry && !src.length) {
       warnings.push({ scope: "nation", id: n.id, message: `${n.name}: no voice lines found for ${n.voiceCountry}.` });
-      continue;
     }
-    for (const b of src) {
-      clones.push(
-        `        ${text.slice(b.start, b.end).replace(/(MotherCountry\s*=\s*)'[^']*'/, `$1'${n.tag}'`)},`,
-      );
-    }
+    const cloned = src.map((b) => ({
+      type: b.type,
+      action: b.action,
+      text: text.slice(b.start, b.end).replace(/(MotherCountry\s*=\s*)'[^']*'/, `$1'${n.tag}'`),
+    }));
+    for (const block of voiceBlocks(game, n, cloned)) clones.push(`        ${block},`);
   }
   if (!clones.length) return text;
 

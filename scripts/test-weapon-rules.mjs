@@ -177,10 +177,61 @@ check(reExport.files.filter((f) => typeof f.data === "string").every((f) => f.da
 // 11. limits and unsupported cases
 const tooManyWeapons = unitProject("Descriptor_Unit_M1A1_Abrams_US", "Full Tank", { added: [1, 2].map((i) => ({ id: `x${i}`, turret: 1, coax: false, ammo: "Ammo_HMG_12_7_mm_M2HB", count: 1, box: 1 })) });
 check(errorsOf(tooManyWeapons).some((m) => m.includes("never uses more than 6")), "more than 6 weapons is an error");
-const inf = newProject("inf");
-inf.nations.push({ ...newNation(), tag: "RUR", name: "Ruritania" });
-inf.units.push({ ...newUnit(game.unitsById.get("Descriptor_Unit_Rifles_US"), "RUR"), name: "Inf", weapons: { added: [{ id: "i", turret: 0, ammo: "Ammo_HMG_12_7_mm_M2HB", count: 1, box: 0 }] } });
-check(validateProject(inf, game).errors.some((e) => e.message.includes("only supported for ground vehicles")), "adding weapons to infantry is refused for now");
+
+// 12. infantry: a new soldier role carrying an RPG-7 (own turret, own box, held like vanilla squads hold it)
+const rifleSalves = game.weapons[game.unitsById.get("Descriptor_Unit_Rifles_US").weapon].salves.length;
+const infP = unitProject("Descriptor_Unit_Rifles_US", "Rpg Squad", {
+  extraBoxes: [4],
+  added: [{ id: "r1", role: true, ammo: "Ammo_RocketInf_RPG7VL", count: 1, box: rifleSalves }],
+});
+check(!errorsOf(infP).length, `infantry soldier role validates (${errorsOf(infP).join(" | ") || "no errors"})`);
+const infOut = await buildModFiles({ project: infP, game, source });
+const ifile = (end) => infOut.files.find((f) => f.path.endsWith(end))?.data || "";
+const iw = /export WeaponDescriptor_Rpg_Squad_RUR[\s\S]*?\n\)/.exec(ifile("WeaponDescriptor.ndf"))?.[0] || "";
+const donor = game.infantryWeapons.Ammo_RocketInf_RPG7VL;
+check(/TTurretInfanterieDescriptor[\s\S]*Ammo_RocketInf_RPG7VL[\s\S]*HandheldEquipmentKey = "WeaponAlternative_5"[\s\S]*YulBoneOrdinal = 5/.test(iw), "new role: 5th infantry turret with WeaponAlternative_5");
+check(iw.includes(`EffectTag = "${donor.effectTag}"`), "new role uses the vanilla fire effect for the RPG");
+const di = ifile("DepictionInfantry.ndf");
+check(new RegExp(String.raw`AllWeaponAlternatives_WR_Rpg_Squad_RUR is \[[\s\S]*'WeaponAlternative_5'\] MeshDescriptor = \$/GFX/DepictionResources/${donor.mesh}`).test(di), "soldier holds the RPG model");
+check(/AllWeaponSubDepiction_WR_Rpg_Squad_RUR is[\s\S]*WeaponShootData_0_5/.test(di), "fire operator for the new role");
+check(/TacticDepiction_WR_Rpg_Squad_RUR_Soldier is[\s\S]*AllWeaponSubDepiction_WR_Rpg_Squad_RUR/.test(di), "soldier depiction uses the new weapons");
+check(/Identifier = "WR_Rpg_Squad_RUR"[\s\S]*?UnitMimetic = TacticDepiction_WR_Rpg_Squad_RUR_Soldier/.test(di), "transported-infantry entry registered");
+check(di.includes("('squad_WR_Rpg_Squad_RUR', TemplateInfantryDepictionSquad("), "squad depiction registered");
+check(di.split("(").length === di.split(")").length && di.split("[").length === di.split("]").length, "DepictionInfantry.ndf stays balanced");
+const iu = /export Descriptor_Unit_Rpg_Squad_RUR[\s\S]*?\n\)/.exec(ifile("UniteDescriptor.ndf"))?.[0] || "";
+check((iu.match(/'WR_Rpg_Squad_RUR'/g) || []).length === 3, "unit points soldiers, squad and transport at the new key");
+check(squadWeaponCount(game, game.unitsById.get("Descriptor_Unit_Rifles_US"), infP.units[0]) === squadWeaponCount(game, game.unitsById.get("Descriptor_Unit_Rifles_US")) + 1, "new role counts as one more weapon for the squad");
+const infRe = await buildModFiles({ project: infP, game, source: { ...source, readText: async (rel) => infOut.files.find((f) => f.path === rel)?.data ?? source.readText(rel) } });
+check(infRe.files.filter((f) => typeof f.data === "string").every((f) => f.data === infOut.files.find((g) => g.path === f.path)?.data), "re-exporting a soldier role is idempotent");
+const badInf = unitProject("Descriptor_Unit_Rifles_US", "Bad Squad", { added: [{ id: "b", role: true, ammo: "Ammo_AA_AIM9M_Sidewinder", count: 1, box: 0 }] });
+check(errorsOf(badInf).some((m) => m.includes("no vanilla soldier carries this")), "infantry can only take weapons a vanilla soldier carries");
+
+// 13. aircraft: a plane (gun muzzle + missile pylons) and a helicopter (rockets from the Hellfire pylons)
+const jet = unitProject("Descriptor_Unit_F15E_StrikeEagle_US", "Jet", {
+  added: [
+    { id: "g", turret: 0, ammo: "Ammo_GatlingAir_M61_Vulcan_20mm", count: 1, box: 0 },
+    { id: "m", turret: 2, ammo: "Ammo_AA_AIM9M_Sidewinder", count: 1, box: 2 },
+  ],
+});
+check(!errorsOf(jet).length, `plane with added gun + missile validates (${errorsOf(jet).join(" | ") || "no errors"})`);
+const jetOut = await buildModFiles({ project: jet, game, source });
+const jfile = (end) => jetOut.files.find((f) => f.path.endsWith(end))?.data || "";
+const da = jfile("DepictionAerialUnits.ndf");
+check(/TacticAerialDepictionRegistration[\s\S]*BlackHoleKey = 'WR_Jet_RUR'/.test(da), "plane gets its own aerial depiction");
+check(/DepictionOperator_WR_Jet_RUR_Weapon4 is DepictionOperator_WeaponContinuousFire[\s\S]*?"fx_tourelle1_tir_01"/.test(da), "added gun fires from the cannon muzzle");
+check(/DepictionOperator_WR_Jet_RUR_Weapon5 is DepictionOperator_WeaponMissileCarriageFire\s*\(\s*Connoisseur = MissileCarriage_F15E_StrikeEagle_US[\s\S]*?WeaponIndex = 3/.test(da), "added missile fires from the Sidewinder pylons");
+check(/"weapon_effet_tag5", Weapon_AA_AIM9M_Sidewinder/.test(da), "added missile has its firing effect");
+check(/BlackHoleKey = "WR_Jet_RUR"/.test(jfile("UniteDescriptor.ndf")), "plane unit points at its new depiction");
+check(!/WR_Jet_RUR/.test(jfile("DepictionGhosts.ndf")), "no placement ghost for aircraft");
+const heli = unitProject("Descriptor_Unit_AH64_Apache_emp1_US", "Heli", {
+  extraBoxes: [2],
+  added: [{ id: "h", turret: 1, ammo: "Ammo_RocketAir_Hydra_70mm_x14", count: 1, box: 2 }],
+});
+check(!errorsOf(heli).length, `helicopter with added rockets validates (${errorsOf(heli).join(" | ") || "no errors"})`);
+const heliDa = (await buildModFiles({ project: heli, game, source })).files.find((f) => f.path.endsWith("DepictionAerialUnits.ndf"))?.data || "";
+check(/DepictionOperator_WR_Heli_RUR_Weapon4 is DepictionOperator_WeaponMissileCarriageFire\s*\(\s*Connoisseur = MissileCarriage_AH64_Apache_emp1_US/.test(heliDa), "helicopter rockets fire from its pylons");
+const coaxJet = unitProject("Descriptor_Unit_F15E_StrikeEagle_US", "Coax Jet", { added: [{ id: "c", turret: 0, coax: true, ammo: "Ammo_GatlingAir_M61_Vulcan_20mm", count: 1, box: 0 }] });
+check(errorsOf(coaxJet).some((m) => m.includes("coaxial guns are for ground vehicles")), "no coaxial guns on aircraft");
 
 console.log(failed ? `${failed} check(s) failed` : "all checks passed");
 process.exit(failed ? 1 : 0);

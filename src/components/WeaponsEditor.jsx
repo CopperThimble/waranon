@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { silhouetteType, turretColor } from "../lib/diagrams";
+import { firingEffectInfo, impactGroup, impactName } from "../lib/effectNames";
 import { vanillaWeaponUrl } from "../lib/images";
+import SearchSelect from "./SearchSelect";
 import { ammoCategoryLabel, cleanGameText, damageFamilyLabel } from "../lib/labels";
 import { AMMO_STATS, newId } from "../lib/model";
 import {
@@ -18,7 +20,8 @@ import {
   MAX_TURRETS,
   MAX_WEAPONS,
   defaultFiringEffect,
-  turretAnchors,
+  addKind,
+  turretFireSource,
   weaponTotals,
 } from "../lib/weapons";
 import { useProject } from "../state/useProject";
@@ -109,7 +112,9 @@ export default function WeaponsEditor({ unit, base, set }) {
   }
 
   const totals = weaponTotals(loadout, ov);
-  const canAddWeapons = Boolean(base.blackHoleKey);
+  const kind = addKind(game, base); // "vehicle" | "aerial" | "infantry" | null
+  const canAddWeapons = Boolean(kind);
+  const infantryAmmo = handheldAmmo(game);
 
   /** Pick a box for new ammo: an existing box it can share, else a new box, else box 1. */
   function boxFor(ammo, boxes) {
@@ -120,15 +125,16 @@ export default function WeaponsEditor({ unit, base, set }) {
     return canAddBox ? { box: "new" } : { box: 0 };
   }
 
-  function addWeapon(turret, coax, ammoId) {
-    const choice = boxFor(game.ammo[ammoId], salvos);
+  function addWeapon(turret, coax, ammoId, role = false) {
+    // a soldier role gets its own box: infantry weapons rarely share salvo shapes
+    const choice = role ? { box: canAddBox ? "new" : 0 } : boxFor(game.ammo[ammoId], salvos);
     update((w) => {
       let box = choice.box;
       if (box === "new") {
         w.extraBoxes = [...(w.extraBoxes || []), 10];
         box = vanillaBoxes + w.extraBoxes.length - 1;
       }
-      w.added = [...(w.added || []), { id: newId(), turret, coax, ammo: ammoId, count: 1, box, fx: null }];
+      w.added = [...(w.added || []), role ? { id: newId(), role: true, turret: null, coax: false, ammo: ammoId, count: 1, box, fx: null } : { id: newId(), turret, coax, ammo: ammoId, count: 1, box, fx: null }];
       return w;
     });
   }
@@ -377,22 +383,25 @@ export default function WeaponsEditor({ unit, base, set }) {
                   />
                 ))}
             </div>
-            {canAddWeapons && (
+            {canAddWeapons && kind !== "infantry" && (
               <div className="add-weapon-row">
                 {(() => {
-                  const noMuzzle = !turretAnchors(game, base, ti).length;
+                  const source = turretFireSource(game, base, ti);
                   const full = totals.weapons >= MAX_WEAPONS;
-                  const why = noMuzzle ? "This turret has no muzzle point (missile launchers aren't supported yet)" : full ? `Vanilla never uses more than ${MAX_WEAPONS} weapons` : "";
+                  const why = !source ? "This turret has nothing to fire from (no muzzle point or missile pylons)" : full ? `Vanilla never uses more than ${MAX_WEAPONS} weapons` : "";
                   const coaxWhy = why || (t.type !== "TwoAxis" ? "Coaxial guns need a rotating turret" : t.master != null ? "This turret is itself coaxial" : totals.turrets >= MAX_TURRETS ? `Vanilla never uses more than ${MAX_TURRETS} turrets` : "");
                   return (
                     <>
                       <Button size="sm" onClick={() => setAdding({ turret: ti, coax: false })} disabled={!!why} title={why}>
-                        + Add weapon to this turret
+                        + Add weapon to this {kind === "aerial" ? "mount" : "turret"}
                       </Button>
-                      <Button size="sm" onClick={() => setAdding({ turret: ti, coax: true })} disabled={!!coaxWhy} title={coaxWhy}>
-                        + Add coaxial gun
-                      </Button>
-                      {(why || coaxWhy) && <span className="muted small">{why || coaxWhy}</span>}
+                      {kind === "vehicle" && (
+                        <Button size="sm" onClick={() => setAdding({ turret: ti, coax: true })} disabled={!!coaxWhy} title={coaxWhy}>
+                          + Add coaxial gun
+                        </Button>
+                      )}
+                      {source?.carriage && !why && <span className="muted small">fires from this mount&apos;s missile pylons</span>}
+                      {(why || (kind === "vehicle" && coaxWhy)) && <span className="muted small">{why || coaxWhy}</span>}
                     </>
                   );
                 })()}
@@ -401,19 +410,61 @@ export default function WeaponsEditor({ unit, base, set }) {
           </div>
         );
       })}
-      {!canAddWeapons && (
-        <p className="muted small">Adding weapons works for ground vehicles so far; infantry and aircraft use different 3D depictions.</p>
+      {kind === "infantry" && (
+        <div className="turret">
+          <h4 className="section-title">New soldier roles</h4>
+          <div className="mounted-list">
+            {mounted
+              .filter((w) => w.added?.role)
+              .map((w) => (
+                <AddedWeapon
+                  key={w.slot}
+                  weapon={w}
+                  name={nameOf(w)}
+                  base={base}
+                  boxes={boxOptions(w)}
+                  canAddBox={canAddBox}
+                  inConflict={conflictSlots.has(w.slot)}
+                  onSwap={() => setSwapSlot(w.slot)}
+                  onMove={(box) => moveAdded(w.added.id, box)}
+                  onChange={(patch) => patchAdded(w.added.id, patch)}
+                  onRemove={() => removeAdded(w.added.id)}
+                />
+              ))}
+          </div>
+          <div className="add-weapon-row">
+            {(() => {
+              const why = totals.weapons >= MAX_WEAPONS ? `Vanilla never uses more than ${MAX_WEAPONS} weapons` : totals.turrets >= MAX_TURRETS ? `Vanilla never uses more than ${MAX_TURRETS} weapon roles` : "";
+              return (
+                <>
+                  <Button size="sm" onClick={() => setAdding({ role: true })} disabled={!!why} title={why}>
+                    + Add a soldier carrying a new weapon
+                  </Button>
+                  {why && <span className="muted small">{why}</span>}
+                </>
+              );
+            })()}
+          </div>
+          <p className="muted small">
+            Each role is carried by &quot;×N&quot; soldiers, holding the weapon the way vanilla squads do (model, pose and muzzle flash are copied from a squad that
+            carries it). Only weapons some vanilla soldier carries are offered. The squad gets its own copy of its 3D depiction on export.
+          </p>
+        </div>
       )}
+      {!canAddWeapons && <p className="muted small">This unit has no 3D depiction the builder can copy, so it can&apos;t take new weapons.</p>}
       {canAddWeapons && (
         <p className="muted small">
-          {totals.weapons}/{MAX_WEAPONS} weapons, {totals.turrets}/{MAX_TURRETS} turrets (vanilla maximums). New weapons fire from the turret's existing
-          muzzle point; a coaxial gun follows the turret's aim. The unit gets its own copy of the 3D depiction on export.
+          {totals.weapons}/{MAX_WEAPONS} weapons, {totals.turrets}/{MAX_TURRETS} turrets (vanilla maximums).{" "}
+          {kind === "vehicle" && "New weapons fire from the turret's existing muzzle point; a coaxial gun follows the turret's aim. "}
+          {kind === "aerial" && "New weapons fire from the mount's gun muzzle, or launch from the pylons of the missiles already on it. "}
+          The unit gets its own copy of the 3D depiction on export.
         </p>
       )}
 
       {swapSlot && (
         <AmmoPicker
           weapon={mounted.find((w) => w.slot === swapSlot)}
+          allowed={kind === "infantry" ? infantryAmmo : null}
           requirements={boxRequirements(game, loadout, ov, swapSlot)}
           canAddBox={canAddBox}
           onClose={() => setSwapSlot(null)}
@@ -441,13 +492,14 @@ export default function WeaponsEditor({ unit, base, set }) {
       )}
       {adding && (
         <AmmoPicker
-          weapon={{ turretType: adding.coax ? "TwoAxis" : loadout.turrets[adding.turret].type, ammoId: null, ammo: null, override: {} }}
+          weapon={{ turretType: adding.role ? "Infanterie" : adding.coax ? "TwoAxis" : loadout.turrets[adding.turret].type, ammoId: null, ammo: null, override: {} }}
           requirements={null}
           canAddBox={canAddBox}
-          title={adding.coax ? `Add a coaxial gun to turret ${adding.turret + 1}` : `Add a weapon to turret ${adding.turret + 1}`}
+          allowed={adding.role ? infantryAmmo : null}
+          title={adding.role ? "Add a soldier carrying a new weapon" : adding.coax ? `Add a coaxial gun to turret ${adding.turret + 1}` : `Add a weapon to turret ${adding.turret + 1}`}
           onClose={() => setAdding(null)}
           onPick={(ammoId) => {
-            addWeapon(adding.turret, adding.coax, ammoId);
+            addWeapon(adding.turret ?? null, !!adding.coax, ammoId, !!adding.role);
             setAdding(null);
           }}
         />
@@ -468,11 +520,18 @@ export default function WeaponsEditor({ unit, base, set }) {
   }
 }
 
-/** A weapon added in the builder (existing turret or coaxial). */
+const handheldCache = new WeakMap();
+/** Ammo some vanilla soldier carries (the only ones a new soldier role can hold). */
+function handheldAmmo(game) {
+  if (!handheldCache.has(game)) handheldCache.set(game, new Set(Object.keys(game.infantryWeapons || {})));
+  return handheldCache.get(game);
+}
+
+/** A weapon added in the builder (existing turret, coaxial, or a new soldier role). */
 function AddedWeapon({ weapon: w, name, base, boxes, canAddBox, inConflict, onSwap, onMove, onChange, onRemove }) {
   const { game } = useProject();
   const a = w.added;
-  const fx = a.fx || defaultFiringEffect(game, base, a.turret, a.ammo);
+  const fx = a.role ? null : a.fx || defaultFiringEffect(game, base, a.turret, a.ammo);
   const iconUrl = vanillaWeaponUrl(game.weaponIcons[w.ammo?.icon]);
   const maxRange = Math.max(w.stats.range || 0, w.stats.rangeHeli || 0, w.stats.rangeAir || 0);
   return (
@@ -481,7 +540,7 @@ function AddedWeapon({ weapon: w, name, base, boxes, canAddBox, inConflict, onSw
         {iconUrl && <img className="weapon-icon" src={iconUrl} alt="" />}
         <div className="mounted-name">
           <strong>{name}</strong>
-          <span className="tag-custom">{a.coax ? "coaxial" : "added"}</span>
+          <span className="tag-custom">{a.role ? "new role" : a.coax ? "coaxial" : "added"}</span>
           <div className="muted small">
             {ammoCategoryLabel(w.ammo?.category)} · {damageFamilyLabel(w.ammo?.family)} {w.stats.power} · {maxRange} GRU · {w.stats.shotsPerSalvo} shot
             {w.stats.shotsPerSalvo === 1 ? "" : "s"}/salvo
@@ -497,14 +556,18 @@ function AddedWeapon({ weapon: w, name, base, boxes, canAddBox, inConflict, onSw
               ))}
               {canAddBox && <option value="new">+ New box</option>}
             </select>
-            <select className="box-select" value={fx || ""} onChange={(e) => onChange({ fx: e.target.value })} aria-label="Firing effect">
-              {!fx && <option value="">Choose a firing effect…</option>}
-              {game.firingEffects.map((f) => (
-                <option key={f} value={f}>
-                  Fires like: {f.replace(/^Weapon_/, "").replace(/_/g, " ")}
-                </option>
-              ))}
-            </select>
+            {!a.role && (
+              <span className="fires-like">
+                <span className="muted">Fires like</span>
+                <SearchSelect
+                  ariaLabel="Firing flash and sound"
+                  placeholder="Search, e.g. howitzer, 125, gatling…"
+                  value={fx || ""}
+                  options={firingOptions(game, defaultFiringEffect(game, base, a.turret, a.ammo))}
+                  onChange={(v) => onChange({ fx: v })}
+                />
+              </span>
+            )}
           </div>
         </div>
         <label className="mounted-count" title="Number of these weapons (NbWeapons)">
@@ -635,30 +698,29 @@ function MountedWeapon({ weapon: w, name, boxes, canAddBox, inConflict, open, on
           <div className="look-grid">
             <label className="field">
               <span className="field-label">Impact effect &amp; sound</span>
-              <select className="input" value={look.impact || ammo.impact || ""} onChange={(e) => setLook("impact", e.target.value)}>
-                {game.impactPresets.map((k) => (
-                  <option key={k} value={k}>
-                    {impactLabel(k)}
-                    {k === ammo.impact ? " (original)" : ""}
-                  </option>
-                ))}
-              </select>
-              <span className="field-hint">Explosion/hit effects and impact sounds on ground, water, buildings, vehicles and aircraft.</span>
+              <SearchSelect
+                ariaLabel="Impact effect and sound"
+                placeholder="Search, e.g. bomb, mk84, 152, napalm…"
+                value={look.impact || ammo.impact || ""}
+                options={impactOptions(game, ammo.impact)}
+                onChange={(v) => setLook("impact", v)}
+              />
+              <span className="field-hint">
+                What you see and hear where the round lands (on ground, water, buildings, vehicles and aircraft). Any ammo can use any of them; it&apos;s
+                only the look and sound, damage and blast radius stay as set above.
+              </span>
             </label>
             <label className="field">
               <span className="field-label">Weapon icon</span>
               <span className="icon-select">
                 <span className="icon-preview">{iconUrl ? <img src={iconUrl} alt="" /> : <em className="muted small">no preview</em>}</span>
-                <select className="input" value={icon || ""} onChange={(e) => setLook("icon", e.target.value)}>
-                  {Object.entries(game.weaponIcons)
-                    .sort((a, b) => a[1].localeCompare(b[1]))
-                    .map(([tex, file]) => (
-                      <option key={tex} value={tex}>
-                        {file.replace(/_/g, " ")}
-                        {tex === ammo.icon ? " (original)" : ""}
-                      </option>
-                    ))}
-                </select>
+                <SearchSelect
+                  ariaLabel="Weapon icon"
+                  placeholder="Search, e.g. m2, rpg, 2a46…"
+                  value={icon || ""}
+                  options={iconOptions(game, ammo.icon)}
+                  onChange={(v) => setLook("icon", v)}
+                />
               </span>
               <span className="field-hint">The picture shown in the unit's weapon panel.</span>
             </label>
@@ -673,12 +735,37 @@ function MountedWeapon({ weapon: w, name, boxes, canAddBox, inConflict, open, on
   );
 }
 
-/** "CanonGrosAPFDSM1Abrams" -> "Canon Gros APFDS M1 Abrams" */
-function impactLabel(key) {
-  return key.replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+// Option lists for the searchable pickers, built once per catalog.
+const optionCache = new WeakMap();
+function cached(game, key, build) {
+  if (!optionCache.has(game)) optionCache.set(game, {});
+  const c = optionCache.get(game);
+  return (c[key] ||= build());
+}
+const byGroupThenLabel = (a, b) => a.group.localeCompare(b.group) || a.label.localeCompare(b.label, undefined, { numeric: true });
+
+function impactOptions(game, original) {
+  const base = cached(game, "impact", () =>
+    game.impactPresets.map((k) => ({ value: k, label: impactName(k), group: impactGroup(k) })).sort(byGroupThenLabel),
+  );
+  return base.map((o) => (o.value === original ? { ...o, badge: "original" } : o));
 }
 
-function AmmoPicker({ weapon, requirements, canAddBox, onPick, onClose, title }) {
+function iconOptions(game, original) {
+  const base = cached(game, "icons", () =>
+    Object.entries(game.weaponIcons)
+      .map(([tex, file]) => ({ value: tex, label: file.replace(/_/g, " "), image: vanillaWeaponUrl(file) }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })),
+  );
+  return base.map((o) => (o.value === original ? { ...o, badge: "original" } : o));
+}
+
+function firingOptions(game, suggested) {
+  const base = cached(game, "firing", () => game.firingEffects.map((f) => ({ value: f, ...firingEffectInfo(f) })).sort(byGroupThenLabel));
+  return base.map((o) => (o.value === suggested ? { ...o, badge: "suggested" } : o));
+}
+
+function AmmoPicker({ weapon, requirements, canAddBox, onPick, onClose, title, allowed = null }) {
   const { game } = useProject();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(weapon.ammo?.category || "");
@@ -690,6 +777,7 @@ function AmmoPicker({ weapon, requirements, canAddBox, onPick, onClose, title })
     let hidden = 0;
     const list = [];
     for (const [id, a] of Object.entries(game.ammo)) {
+      if (allowed && !allowed.has(id)) continue;
       if (category && a.category !== category) continue;
       if (!words.every((w) => `${id} ${a.name}`.toLowerCase().includes(w))) continue;
       if (mountProblem(weapon.turretType, a.projectile)) {
@@ -707,7 +795,7 @@ function AmmoPicker({ weapon, requirements, canAddBox, onPick, onClose, title })
         Number(y.fits) - Number(x.fits) || Number(nameHit(y.a)) - Number(nameHit(x.a)) || (y.a.stats.power || 0) - (x.a.stats.power || 0),
     );
     return { rows: list, hiddenMount: hidden };
-  }, [game, query, category, onlyFits, weapon, requirements, canAddBox]);
+  }, [game, query, category, onlyFits, weapon, requirements, canAddBox, allowed]);
 
   const req = requirements?.values;
   return (

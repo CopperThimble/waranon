@@ -8,11 +8,12 @@ import {
   boxCount,
   defaultFiringEffect,
   effectiveMounted,
+  addKind,
   emptyBoxes,
   mountProblem,
   normalizeWeapons,
   squadWeaponCount,
-  turretAnchors,
+  turretFireSource,
   turretLabel,
   weaponTotals,
 } from "./weapons.js";
@@ -53,6 +54,20 @@ export function validateProject(project, game) {
     if (!n.flagAssetId && !game.countriesByTag.has(n.baseFlagCountry))
       err("nation", n.id, `${label}: upload a flag or pick a vanilla flag.`);
     if (n.flagAssetId && !project.assets[n.flagAssetId]) err("nation", n.id, `${label}: flag image is missing.`);
+    for (const c of n.voice?.clips || []) {
+      if (!project.assets[c.assetId]) err("nation", n.id, `${label}: a voice clip (${c.category} / ${c.action}) lost its audio; re-record or delete it on the Voices page.`);
+    }
+    {
+      // units that would be silent: none of their voice categories is copied or recorded for this nation
+      const recorded = new Set((n.voice?.clips || []).map((c) => c.category));
+      const silent = project.units.filter((u) => {
+        if (u.nationTag !== n.tag) return false;
+        const base = game.unitsById.get(u.baseUnitId);
+        return base?.acknow?.length && !base.acknow.some((t) => game.acknow?.[t]?.countries.includes(n.voiceCountry) || recorded.has(game.acknow?.[t]?.base));
+      });
+      if (silent.length)
+        warn("nation", n.id, `${label}: ${silent.length} unit${silent.length > 1 ? "s have" : " has"} no voice lines (${silent.slice(0, 3).map((u) => u.name).join(", ")}${silent.length > 3 ? "…" : ""}). Pick a "Voice lines" country that has them, or record lines on the Voices page.`);
+    }
     if (n.unitNamesDico === CUSTOM_NAMES) {
       const { names } = parseNameList(n.customNames);
       if (!names.length) err("nation", n.id, `${label}: paste at least one unit name, or pick a vanilla name pool.`);
@@ -208,32 +223,44 @@ function validateWeapons(u, base, label, game, err, warn) {
       err("unit", u.id, `${label}: turret ${Number(ti) + 1} lowest aim (${-depression}°) is above its highest (${elevation}°); lower the depression limit or raise elevation.`);
     if (t.facing != null && !(t.facing >= -180 && t.facing <= 180)) err("unit", u.id, `${label}: turret ${Number(ti) + 1} facing must be between -180° and 180°.`);
   }
-  // Added weapons need a vehicle depiction to clone (for the muzzle flash / firing sound).
+  // Added weapons need a depiction to clone (muzzle flash / firing sound / what the soldier holds).
   const withAdded = normalizeWeapons(loadout, ov);
+  const kind = addKind(game, base);
   for (const a of withAdded.added || []) {
     const ammo = game.ammo[a.ammo];
-    const host = loadout.turrets[a.turret];
-    const where = `${label}: added ${a.coax ? "coaxial " : ""}weapon ${ammo?.name || a.ammo}`;
-    if (!base.blackHoleKey) {
-      err("unit", u.id, `${where}: adding weapons is only supported for ground vehicles so far.`);
+    const where = `${label}: added ${a.role ? "soldier role" : a.coax ? "coaxial weapon" : "weapon"} ${ammo?.name || a.ammo}`;
+    if (!Number.isInteger(a.count) || a.count < 1) err("unit", u.id, `${where}: weapon count must be a whole number of at least 1.`);
+    if (!ammo) {
+      err("unit", u.id, `${where}: ammunition not found in game data.`);
       continue;
     }
+    if (!kind) {
+      err("unit", u.id, `${where}: this unit has no 3D depiction the builder can copy, so it can't take new weapons.`);
+      continue;
+    }
+    if (kind === "infantry") {
+      if (!a.role) err("unit", u.id, `${where}: infantry weapons are added as a new soldier role.`);
+      if (!game.infantryWeapons?.[a.ammo]) err("unit", u.id, `${where}: no vanilla soldier carries this, so there's no hand-held model for it. Pick an infantry weapon.`);
+      continue;
+    }
+    if (a.role) {
+      err("unit", u.id, `${where}: soldier roles are for infantry only.`);
+      continue;
+    }
+    const host = loadout.turrets[a.turret];
     if (!host) {
       err("unit", u.id, `${where}: its turret no longer exists.`);
       continue;
     }
+    if (a.coax && kind !== "vehicle") err("unit", u.id, `${where}: coaxial guns are for ground vehicles.`);
     if (a.coax && host.type !== "TwoAxis") err("unit", u.id, `${where}: coaxial guns need a rotating turret.`);
     if (a.coax && host.master != null) err("unit", u.id, `${where}: can't slave to a turret that is itself coaxial.`);
-    if (!ammo) err("unit", u.id, `${where}: ammunition not found in game data.`);
-    else {
-      const problem = mountProblem(a.coax ? "TwoAxis" : host.type, ammo.projectile);
-      if (problem) err("unit", u.id, `${where}: ${problem}.`);
-    }
-    if (!turretAnchors(game, base, a.turret).length)
-      err("unit", u.id, `${where}: turret ${a.turret + 1} has no muzzle point to fire from (missile launchers aren't supported yet).`);
+    const problem = mountProblem(a.coax ? "TwoAxis" : host.type, ammo.projectile);
+    if (problem) err("unit", u.id, `${where}: ${problem}.`);
+    if (!turretFireSource(game, base, a.turret))
+      err("unit", u.id, `${where}: turret ${a.turret + 1} has nothing to fire from (no muzzle point or missile pylons in its depiction).`);
     const fx = a.fx || defaultFiringEffect(game, base, a.turret, a.ammo);
     if (!fx || !game.firingEffects.includes(fx)) err("unit", u.id, `${where}: pick a firing effect.`);
-    if (!Number.isInteger(a.count) || a.count < 1) err("unit", u.id, `${where}: weapon count must be a whole number of at least 1.`);
   }
   const totals = weaponTotals(loadout, withAdded);
   if (totals.weapons > MAX_WEAPONS) err("unit", u.id, `${label}: ${totals.weapons} weapons; vanilla never uses more than ${MAX_WEAPONS}.`);
