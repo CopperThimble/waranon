@@ -21,7 +21,7 @@ export function NationFlag({ tag, size = 22 }) {
 export function UnitThumb({ info, className = "" }) {
   const { project } = useProject();
   const custom = info?.custom && info.unit.iconAssetId ? blobUrl(project.assets[info.unit.iconAssetId]?.blob) : null;
-  const url = custom || vanillaUnitUrl(info?.base?.id);
+  const url = custom || vanillaUnitUrl(info?.base);
   return (
     <div className={`unit-thumb ${className}`}>
       {url ? <img src={url} alt="" loading="lazy" /> : <span>{info?.name?.slice(0, 2) || "?"}</span>}

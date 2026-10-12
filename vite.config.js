@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import process from 'node:process'
 import path from 'node:path'
 import { defineConfig } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
@@ -37,9 +38,23 @@ function sampleModPlugin() {
   }
 }
 
+// Game art switch: "gameArt" in waranon.config.json, overridable with WARANON_GAME_ART=on|off
+// (e.g. in CI). When off, "game-art" resolves to an empty module, so no images/ file is bundled.
+const siteConfig = JSON.parse(fs.readFileSync('waranon.config.json', 'utf8'))
+const envArt = process.env.WARANON_GAME_ART
+const gameArt = envArt ? envArt !== 'off' : siteConfig.gameArt !== false
+
 // https://vite.dev/config/
 export default defineConfig({
   base: '/waranon/',
+  resolve: {
+    alias: {
+      'game-art': path.resolve(gameArt ? 'src/lib/gameArt.on.js' : 'src/lib/gameArt.off.js'),
+    },
+  },
+  define: {
+    'import.meta.env.VITE_GAME_ART': JSON.stringify(gameArt ? 'on' : 'off'),
+  },
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] }),

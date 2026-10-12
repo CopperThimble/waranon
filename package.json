@@ -11,7 +11,8 @@
     "data": "python scripts/build_game_data.py",
     "data:ranges": "python scripts/extract_stat_ranges.py",
     "test:export": "node scripts/test-export.mjs SampleMods/modexample test-output",
-    "test:rules": "node scripts/test-weapon-rules.mjs SampleMods/modexample"
+    "test:rules": "node scripts/test-weapon-rules.mjs SampleMods/modexample",
+    "art": "node scripts/game-art.mjs"
   },
   "dependencies": {
     "jszip": "^3.10.1",

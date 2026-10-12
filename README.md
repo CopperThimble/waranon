@@ -34,6 +34,8 @@ npm run test:export   # end-to-end exporter check against SampleMods/modexample 
 npm run test:rules    # weapon loadout rules (shared ammo boxes, mount types)
 ```
 
+Unit portraits come from `images/unit-icons/{NATO,PACT}/`, which mirrors the game's `GameData/Assets/2D/Interface/Common/UnitsIcons/` layout; `portraits_manifest.json` there records where each one was extracted from. Each unit's `portrait` field in the catalog is resolved through its button texture in `ButtonTexturesUnites.ndf`. The older descriptor-named set in `images/units/` is only a fallback.
+
 Vanilla unit and weapon names come from `data/vanilla_localisation.csv`, which is from an older patch, so divisions added since then fall back to their config names.
 
 ## Layout
@@ -52,3 +54,17 @@ scripts/        data extraction (Python), exporter test (Node)
 - Only **two sides** exist (`TWargameCoalition` is NATO=0 / PACT=1, mirrored from C++). Custom alliances fight on one of them.
 - Armor values are indices into fixed tables (`DamageResistance.ndf`); for example, heavy armor (`blindage`) has 30 levels. The unit editor enforces these.
 - Cloned units keep the base unit's `MimeticName`/model, so they reuse its 3D model, animations and depiction.
+
+## Legal and game art
+
+Waranon is a free fan tool, not affiliated with or endorsed by Eugen Systems. WARNO game data and artwork are © Eugen Systems; the app shows this attribution and a contact link (set in `waranon.config.json`) on every page.
+
+All game artwork lives in `images/` and can be switched off in one step:
+
+```sh
+npm run art -- status
+npm run art -- off   # hide all game art in the app + untrack it from git (local files kept)
+npm run art -- on    # restore both
+```
+
+With art off, the build contains no game images (pictures fall back to placeholders). CI can force it with `WARANON_GAME_ART=off`. Untracking removes the art from the branch and the deployed site once pushed, but not from git history. `images/unit-icons/` (locally extracted portraits) is gitignored separately and is never published by these commands.

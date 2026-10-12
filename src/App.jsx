@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import Credits from "./components/Credits";
 import { loadGameData } from "./lib/gameData";
 import AbilitiesPage from "./pages/AbilitiesPage";
 import AlliancesPage from "./pages/AlliancesPage";
 import DivisionsPage from "./pages/DivisionsPage";
 import ExportPage from "./pages/ExportPage";
+import GalleryPage from "./pages/GalleryPage";
 import NationsPage from "./pages/NationsPage";
 import ProjectPage from "./pages/ProjectPage";
 import UnitsPage from "./pages/UnitsPage";
@@ -18,6 +20,7 @@ const PAGES = [
   { id: "abilities", label: "Abilities", icon: "✦", component: AbilitiesPage, count: (p) => (p.abilities || []).length },
   { id: "divisions", label: "Divisions", icon: "◆", component: DivisionsPage, count: (p) => p.divisions.length },
   { id: "export", label: "Export", icon: "⇩", component: ExportPage },
+  { id: "gallery", label: "Gallery", icon: "▦", component: GalleryPage },
 ];
 
 const pageFromHash = () => {
@@ -84,6 +87,7 @@ function Shell() {
             </li>
           ))}
         </ul>
+        <Credits />
       </nav>
       <main className="main">
         <Page key={`${project.id}-${page}`} navigate={navigate} />

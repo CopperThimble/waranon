@@ -453,3 +453,20 @@ textarea.input { resize: vertical; }
 /* Game weapon icons are dark line drawings; give them a light plate so they read on the dark theme. */
 .weapon-icon, .icon-preview, .ammo-icon-cell img { background: #c9d1d8; border-radius: 4px; }
 .weapon-icon { padding: 2px 4px; }
+
+/* ── Gallery ───────────────────────────────────────────────────────────── */
+.gallery-filters { display: grid; grid-template-columns: 1fr 150px 160px 170px; gap: 8px; margin-bottom: 10px; }
+@media (max-width: 760px) { .gallery-filters { grid-template-columns: 1fr 1fr; } }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.gallery-item { display: flex; flex-direction: column; padding: 0; overflow: hidden; text-align: left; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.gallery-item:hover { border-color: var(--accent); }
+.gallery-item img { width: 100%; aspect-ratio: 360 / 184; object-fit: cover; background: linear-gradient(160deg, #26303a, #161b20); }
+.gallery-caption { display: flex; flex-direction: column; padding: 6px 9px 8px; min-width: 0; }
+.gallery-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gallery-more { display: flex; justify-content: center; margin: 18px 0; }
+.gallery-detail img { width: 100%; border-radius: 8px; }
+.gallery-users { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.gallery-users li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.credits { margin-top: auto; padding: 10px 6px 0; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.45; color: var(--muted); }
+.credits p { margin: 0 0 6px; }
+.credits a { color: var(--accent-2); }

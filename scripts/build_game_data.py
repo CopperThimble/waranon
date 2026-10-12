@@ -378,6 +378,13 @@ def extract_impact_presets(path):
     return sorted(set(re.findall(r"\('(\w+)', TImpactHappening", text)))
 
 
+def extract_unit_portraits(path):
+    """Unit button textures -> portrait path under UnitsIcons, e.g. 'NATO/M1A1_Abrams_US' (matches images/unit-icons/)."""
+    text = path.read_text(encoding="utf-8")
+    pat = r'\("(Texture_Button_Unit_\w+)",\s*MAP\s*\[\(\s*~/ComponentState/Normal,\s*TUIResourceTexture\(\s*FileName\s*=\s*"GameData:/Assets/2D/Interface/Common/UnitsIcons/([^"]+)\.png"'
+    return dict(re.findall(pat, text))
+
+
 def extract_weapon_icons(path):
     """Weapon panel textures: texture name -> image file basename (matches images/weapons/*.png)."""
     text = path.read_text(encoding="utf-8")
@@ -567,6 +574,9 @@ def main():
     div_types = re.findall(r"\('(\w+)',\s*'Texture_Division_Type_", (ui / "DivisionTypes.ndf").read_text())
 
     used_weapons = {u["weapon"] for u in units if u["weapon"]}
+    portraits = extract_unit_portraits(ui / "Textures" / "ButtonTexturesUnites.ndf")
+    for u in units:
+        u["portrait"] = portraits.get(u["buttonTexture"])
     for u in units:  # drop stats a unit type doesn't have (planes have no acceleration, etc.)
         u["stats"] = {k: v for k, v in u["stats"].items() if v is not None}
     data = {

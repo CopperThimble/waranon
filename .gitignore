@@ -22,3 +22,7 @@ dist/
 # Output of npm run test:export
 test-output/
 __pycache__/
+
+# Game art extracted locally from WARNO (not redistributed for now)
+images/unit-icons/
+

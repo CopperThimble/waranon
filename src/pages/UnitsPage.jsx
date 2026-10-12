@@ -147,7 +147,7 @@ function UnitEditor({ unit, onSelect }) {
           <ImageUpload
             spec={IMAGE_SPECS.unitIcon}
             blob={project.assets[unit.iconAssetId]?.blob}
-            fallbackUrl={vanillaUnitUrl(base.id)}
+            fallbackUrl={vanillaUnitUrl(base)}
             onChange={(blob, name) => {
               removeAsset(unit.iconAssetId);
               set({ iconAssetId: addAsset(blob, name) });
