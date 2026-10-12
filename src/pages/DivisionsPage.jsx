@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import UnitPicker from "../components/UnitPicker";
 import { Button, Empty, Field, ImageUpload, PageHeader, SideBadge } from "../components/ui";
+import { UnitHover } from "../components/UnitCard";
 import { DivisionEmblem, NationFlag, UnitThumb } from "../components/visuals";
 import { IMAGE_SPECS, vanillaEmblemUrl } from "../lib/images";
 import {
@@ -15,9 +16,9 @@ import {
 } from "../lib/model";
 import { useProject } from "../state/useProject";
 
-export default function DivisionsPage() {
+export default function DivisionsPage({ route }) {
   const { game, project, addItem } = useProject();
-  const [selectedId, setSelectedId] = useState(project.divisions[0]?.id || null);
+  const [selectedId, setSelectedId] = useState(() => (route?.id && project.divisions.some((x) => x.id === route.id) ? route.id : project.divisions[0]?.id || null));
   const selected = project.divisions.find((d) => d.id === selectedId) || project.divisions[0];
 
   function create() {
@@ -127,7 +128,7 @@ function DivisionEditor({ division: d }) {
                 <optgroup key={g.side} label={g.side}>
                   {g.divisions.map((x) => (
                     <option key={x.id} value={x.id}>
-                      {titleCase(x.name)} ({x.country})
+                      {titleCase(x.name)} ({x.country}){x.dlc ? ` · DLC: ${x.dlc.name}` : ""}
                     </option>
                   ))}
                 </optgroup>
@@ -292,7 +293,9 @@ function RosterCard({ rule, info, divisionSide, onChange, onRemove, onAddTranspo
   return (
     <div className={`roster-card ${info.custom ? "roster-card-custom" : ""}`}>
       <div className="roster-card-top">
-        <UnitThumb info={info} className="unit-thumb-sm" />
+        <UnitHover base={info.base} unit={info.custom ? info.unit : null} name={info.name}>
+          <UnitThumb info={info} className="unit-thumb-sm" />
+        </UnitHover>
         <div className="roster-card-name" title={info.base.id}>
           {info.name}
           {unitSide !== divisionSide && <span className="warn-dot" title={`${unitSide} unit in a ${divisionSide} division`}>!</span>}

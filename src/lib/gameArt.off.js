@@ -5,3 +5,5 @@ export const flagModules = {};
 export const emblemModules = {};
 export const weaponModules = {};
 export const portraitModules = {};
+export const specialtyModules = {};
+export const traitModules = {};

@@ -3,7 +3,8 @@ import { ROLE_LABELS, facetLabel, unitFacets } from "../lib/labels";
 import { CATEGORIES, allAlliances, allNations, customRef, resolveUnitRef } from "../lib/model";
 import { useProject } from "../state/useProject";
 import { Modal } from "./ui";
-import { NationFlag, UnitThumb } from "./visuals";
+import { UnitHover } from "./UnitCard";
+import { DlcBadge, NationFlag, SpecIcon, UnitThumb } from "./visuals";
 
 const LIMIT = 120;
 const TAG_CHIPS_COLLAPSED = 18;
@@ -196,7 +197,7 @@ export default function UnitPicker({ title = "Choose a unit", onPick, onClose, o
               onClick={() => toggleTag(key)}
               title={key.split(":")[1]}
             >
-              {facetLabel(key)}
+              {key.startsWith("spec:") && <SpecIcon spec={key.slice(5)} size={13} />} {facetLabel(key)}
               {!tags.has(key) && <span className="chip-count">{n}</span>}
             </button>
           ))}
@@ -222,16 +223,19 @@ export default function UnitPicker({ title = "Choose a unit", onPick, onClose, o
       <div className="picker-grid">
         {results.slice(0, LIMIT).map((u) => (
           <button type="button" key={u.ref} className="picker-item" onClick={() => onPick(u.ref)}>
-            <UnitThumb info={u} />
+            <UnitHover base={u.base} unit={u.custom ? u.unit : null} name={u.name}>
+              <UnitThumb info={u} />
+            </UnitHover>
             <div className="picker-item-body">
               <div className="picker-item-name">
                 {u.custom && <span className="tag-custom">custom</span>}
-                {u.name}
+                {u.name} {!u.custom && <DlcBadge packs={u.base.dlc} />}
               </div>
               <div className="picker-item-meta">
                 <NationFlag tag={u.country} size={16} />
                 <span>{u.country}</span>
-                <span>· {ROLE_LABELS[u.base.role] || CATEGORIES.find((c) => c.id === u.factory)?.short || u.factory}</span>
+                <SpecIcon spec={u.base.role} size={14} />
+                <span>{ROLE_LABELS[u.base.role] || CATEGORIES.find((c) => c.id === u.factory)?.short || u.factory}</span>
                 {u.stats.cp != null && <span>· {u.stats.cp} pts</span>}
               </div>
             </div>

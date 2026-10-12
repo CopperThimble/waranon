@@ -12,10 +12,10 @@ import { IMAGE_SPECS } from "../lib/images";
 import { newAbility } from "../lib/model";
 import { useProject } from "../state/useProject";
 
-export default function AbilitiesPage() {
+export default function AbilitiesPage({ route }) {
   const { project, addItem } = useProject();
   const abilities = project.abilities || [];
-  const [selectedId, setSelectedId] = useState(abilities[0]?.id || null);
+  const [selectedId, setSelectedId] = useState(() => (route?.id && abilities.some((x) => x.id === route.id) ? route.id : abilities[0]?.id || null));
   const selected = abilities.find((a) => a.id === selectedId) || abilities[0];
 
   function create() {

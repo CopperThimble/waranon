@@ -40,6 +40,14 @@ export async function pickModFolder() {
         return null;
       }
     },
+    /** The file as a Blob (binary-safe, for backups), or null if it doesn't exist. */
+    async readBlob(path) {
+      try {
+        return await (await fileHandle(path)).getFile();
+      } catch {
+        return null;
+      }
+    },
     async requestWrite() {
       return (await root.requestPermission({ mode: "readwrite" })) === "granted";
     },
@@ -100,4 +108,47 @@ export function devSampleSource() {
       return res.ok ? res.json() : null;
     },
   };
+}
+
+export const BACKUP_ROOT = "waranon-backups";
+
+/**
+ * Write export files into a writable source, backing up every file that will be overwritten to
+ * waranon-backups/<stamp>/<same path> first, plus a README explaining how to undo.
+ * Returns { backupDir, backedUp: [paths], created: [paths] }.
+ */
+export async function writeWithBackup(source, files, { stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19), onProgress } = {}) {
+  const backupDir = `${BACKUP_ROOT}/${stamp}`;
+  const backedUp = [];
+  const created = [];
+  onProgress?.("Backing up the files that will change…");
+  for (const f of files) {
+    const original = await source.readBlob(f.path);
+    if (original) {
+      await source.writeFile(`${backupDir}/${f.path}`, original);
+      backedUp.push(f.path);
+    } else {
+      created.push(f.path);
+    }
+  }
+  await source.writeFile(`${backupDir}/README.txt`, backupReadme(stamp, backedUp, created));
+  onProgress?.("Writing files…");
+  for (const f of files) await source.writeFile(f.path, f.data);
+  return { backupDir, backedUp, created };
+}
+
+function backupReadme(stamp, backedUp, created) {
+  const lines = [
+    `Waranon backup taken ${stamp} (UTC) before exporting into this mod folder.`,
+    "",
+    "To undo that export:",
+    "  1. Copy everything in this folder (except this README) back into the mod folder, overwriting.",
+  ];
+  if (created.length) {
+    lines.push("  2. Delete these files, which the export created (they did not exist before):");
+    for (const p of created) lines.push(`       ${p}`);
+  }
+  lines.push("", `Backed-up originals (${backedUp.length}):`);
+  for (const p of backedUp) lines.push(`  ${p}`);
+  return `${lines.join("\r\n")}\r\n`;
 }

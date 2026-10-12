@@ -1,4 +1,5 @@
 import { VANILLA_ABILITIES, describeCustomAbility, describePreset, presetActive, presetActiveOnBase } from "../lib/abilities";
+import { SpecIcon } from "./visuals";
 import { useProject } from "../state/useProject";
 
 function prune(abilities) {
@@ -43,6 +44,7 @@ export default function AbilitiesEditor({ unit, base, set }) {
             >
               <span className="ability-head">
                 <span className="switch" aria-hidden="true" />
+                <SpecIcon spec={p.spec} size={20} />
                 <strong>{p.label}</strong>
                 {onBase && <span className="ability-base">base</span>}
               </span>
@@ -53,6 +55,7 @@ export default function AbilitiesEditor({ unit, base, set }) {
         {hasSmoke && (
           <div className="ability ability-on ability-readonly">
             <span className="ability-head">
+              <SpecIcon spec="_smoke_launcher" size={20} />
               <strong>Smoke launchers</strong>
               <span className="ability-base">base</span>
             </span>

@@ -41,7 +41,7 @@ COUNTRY_NAMES = {
 
 # Editable unit stats: key -> label. Order = UI order.
 STAT_KEYS = ["cp", "health", "speed", "roadSpeed", "stealth", "optics", "fuel", "autonomy",
-             "armorFront", "armorSides", "armorRear", "armorTop", "ecm", "soldiers",
+             "armorFront", "armorSides", "armorRear", "armorTop", "ecm", "soldiers", "supply",
              "accel", "decel", "turnTime", "roadFactor",
              "turnRadius", "altitude", "altitudeMin", "rollAngle", "rollSpeed", "pitchAngle", "evacTime", "travelTime",
              "climb", "torque", "cyclic", "gLimit", "inclination", "deployTime", "packTime"]
@@ -199,6 +199,7 @@ def extract_units(path, loc, building=False):
                 "armorTop": a["Top"]["index"] if a["Top"] else None,
                 "ecm": n(dmg, "HitRollECM"),
                 "soldiers": n(squad, "SoldierCount"),
+                "supply": n(mods.get("TSupplyModuleDescriptor"), "SupplyCapacity"),
                 # ground mobility
                 "accel": n(land, "MaxAccelerationGRU"),
                 "decel": n(land, "MaxDecelerationGRU"),

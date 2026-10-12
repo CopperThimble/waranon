@@ -1,4 +1,5 @@
-import { blobUrl, vanillaEmblemUrl, vanillaFlagUrl, vanillaUnitUrl } from "../lib/images";
+import { blobUrl, specialtyIconUrl, vanillaEmblemUrl, vanillaFlagUrl, vanillaUnitUrl } from "../lib/images";
+import { ROLE_LABELS, SPECIALTY_LABELS } from "../lib/labels";
 import { useProject } from "../state/useProject";
 
 function useFlagUrl(tag) {
@@ -38,5 +39,37 @@ export function DivisionEmblem({ division, size = 48 }) {
     <div className="emblem" style={{ width: size, height: size }}>
       {url ? <img src={url} alt="" /> : <span>◆</span>}
     </div>
+  );
+}
+
+/** Game icon for a role or specialty key ("hq_inf", "_para", "AT"…). Renders nothing without art. */
+export function SpecIcon({ spec, title, size = 18, className = "" }) {
+  const { game } = useProject();
+  const url = specialtyIconUrl(game, spec);
+  if (!url) return null;
+  return <img className={`spec-icon ${className}`} src={url} alt={title || ""} title={title} style={{ height: size }} />;
+}
+
+/** "DLC" chip naming the Nemesis pack(s) a vanilla unit or division needs. */
+export function DlcBadge({ packs }) {
+  const list = Array.isArray(packs) ? packs : packs ? [packs] : [];
+  if (!list.length) return null;
+  return (
+    <span className="dlc-badge" title={`Needs DLC: ${list.map((p) => p.name).join(" or ")}`}>
+      DLC
+    </span>
+  );
+}
+
+/** Role icon + trait icons for a vanilla unit, as on the in-game card. */
+export function UnitSpecIcons({ unit, specialties = unit?.specialties || [], size = 16 }) {
+  if (!unit) return null;
+  return (
+    <span className="spec-icons">
+      <SpecIcon spec={unit.role} title={ROLE_LABELS[unit.role] || unit.role} size={size} />
+      {specialties.map((s) => (
+        <SpecIcon key={s} spec={s} title={SPECIALTY_LABELS[s] || s.replace(/^_/, "").replace(/_/g, " ")} size={size} />
+      ))}
+    </span>
   );
 }

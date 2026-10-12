@@ -42,6 +42,7 @@ export const STATS = [
   { key: "health", label: "Health", tab: "stats", group: "General", step: 1 },
   { key: "stealth", label: "Stealth", tab: "stats", group: "General", step: 0.25, decimals: 2 },
   { key: "optics", label: "Optics", tab: "stats", group: "General", step: 1 },
+  { key: "supply", label: "Supply capacity", tab: "stats", group: "General", step: 50, hint: "Supply points carried (supply units)" },
   { key: "armorFront", label: "Front", tab: "stats", group: "Armor", step: 1, armor: true },
   { key: "armorSides", label: "Sides", tab: "stats", group: "Armor", step: 1, armor: true },
   { key: "armorRear", label: "Rear", tab: "stats", group: "Armor", step: 1, armor: true },

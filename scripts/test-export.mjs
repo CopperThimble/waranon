@@ -44,6 +44,11 @@ project.assets.emblem1 = { blob: png, name: "emblem.png" };
 
 const nation = { ...newNation(), tag: "RUR", name: "Ruritania", allianceId: alliance.id, flagAssetId: "flag1", voiceCountry: "UK", unitNamesDico: "NAMES_UK" };
 project.nations.push(nation);
+// a second nation with a pasted name list (own name pool)
+project.nations.push({
+  ...newNation(), tag: "BOR", name: "Borduria", allianceId: alliance.id, baseFlagCountry: "POL", voiceCountry: "POL",
+  unitNamesDico: "custom", customNames: "# test list\n1. Kurvi-Tasch\n- Sponsz\nSponsz\n\"Plekszy-Gladz\"\nZöldi; Müller\n",
+});
 
 const tank = newUnit(game.unitsById.get("Descriptor_Unit_M1A1_Abrams_US"), "RUR");
 tank.name = "Rur Lion MBT";
@@ -102,6 +107,24 @@ for (const f of first.files) {
   fs.writeFileSync(p, typeof f.data === "string" ? f.data : Buffer.from(await f.data.arrayBuffer()));
   console.log(`${f.kind.padEnd(8)} ${f.path}  — ${f.notes.join("; ")}`);
 }
+// custom name pool: CSV + UnitNamesDico registration + nation mapping
+const byPath = Object.fromEntries(first.files.map((f) => [f.path.replace(/\\/g, "/"), f.data]));
+const namesCsvPath = Object.keys(byPath).find((p) => p.endsWith("/WRN_BOR.csv"));
+const expectedCsv = '"TOKEN";"REFTEXT"\r\n"1";"Kurvi-Tasch"\r\n"2";"Sponsz"\r\n"3";"Plekszy-Gladz"\r\n"4";"Zöldi Müller"\r\n';
+const namesOk =
+  "WRN_BOR".length <= 10 &&
+  namesCsvPath?.startsWith("GameData/Localisation/") &&
+  byPath[namesCsvPath] === expectedCsv &&
+  byPath["GameData/Generated/Gameplay/Gfx/UnitNamesDico/Dico_WRN_BOR.ndf"]?.includes(`FileName = "GameData:/${namesCsvPath.replace(/^GameData\//, "")}"`) &&
+  byPath["GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_BOR.ndf"]?.includes('DicoToken = "WRN_BOR"');
+// every DescriptorId in the patched unit file must be unique (infantry squads carry a nested one)
+const unitsFile = byPath["GameData/Generated/Gameplay/Gfx/UniteDescriptor.ndf"] || "";
+const guids = [...unitsFile.matchAll(/DescriptorId\s*=\s*GUID:\{([^}]*)\}/g)].map((m) => m[1].toLowerCase());
+const dupes = guids.filter((g, i) => guids.indexOf(g) !== i);
+console.log(dupes.length ? `unique GUIDs: FAILED (${[...new Set(dupes)].join(", ")})` : `unique GUIDs: OK (${guids.length})`);
+if (dupes.length) process.exit(1);
+console.log(namesOk ? "custom names: OK" : `custom names: FAILED\n${JSON.stringify(byPath[namesCsvPath])}`);
+if (!namesOk) process.exit(1);
 console.log(`warnings: ${first.warnings.length}`);
 for (const w of first.warnings) console.log("  -", w.message);
 

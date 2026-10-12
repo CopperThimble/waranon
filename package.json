@@ -10,9 +10,12 @@
     "preview": "vite preview",
     "data": "python scripts/build_game_data.py",
     "data:ranges": "python scripts/extract_stat_ranges.py",
+    "model": "node scripts/build_cost_model.mjs",
     "test:export": "node scripts/test-export.mjs SampleMods/modexample test-output",
     "test:rules": "node scripts/test-weapon-rules.mjs SampleMods/modexample",
-    "art": "node scripts/game-art.mjs"
+    "art": "node scripts/game-art.mjs",
+    "test:write": "node scripts/test-write-backup.mjs",
+    "test:model": "node scripts/test-cost-model.mjs"
   },
   "dependencies": {
     "jszip": "^3.10.1",

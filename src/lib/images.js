@@ -1,7 +1,7 @@
 // Image helpers: vanilla art lookups (bundled /images) and user uploads.
 // "game-art" is aliased in vite.config.js to gameArt.on.js or gameArt.off.js, driven by
 // "gameArt" in waranon.config.json, so switching it off leaves no game art in the build.
-import { emblemModules, flagModules, portraitModules, weaponModules } from "game-art";
+import { emblemModules, flagModules, portraitModules, specialtyModules, traitModules, weaponModules } from "game-art";
 
 export const gameArtEnabled = import.meta.env.VITE_GAME_ART !== "off";
 
@@ -74,6 +74,24 @@ export function blobUrl(blob) {
   return url;
 }
 
+const byBaseName = (modules) => Object.fromEntries(Object.entries(modules).map(([p, url]) => [p.split("/").pop().replace(/\.png$/, ""), url]));
+const specialtyUrls = byBaseName(specialtyModules);
+const traitUrls = byBaseName(traitModules);
+
+/**
+ * Icon for a specialty / role key as the game shows it on unit cards ("hq_inf", "_para", "AT"…),
+ * resolved through UnitSpecialties.ndf (game.specialtyIcons). Null when art is off or unknown.
+ */
+export function specialtyIconUrl(game, key) {
+  const texture = key && game.specialtyIcons?.[key];
+  return (texture && specialtyUrls[texture.replace("Texture_Speciality_Icon_", "")]) || null;
+}
+
+/** Weapon trait icon by file name (images/traits/HEAT.png -> "HEAT"). */
+export function traitIconUrl(name) {
+  return traitUrls[name] || null;
+}
+
 /** Sizes the game uses for each kind of upload. */
 export const IMAGE_SPECS = {
   flag: { width: 640, height: 384, fit: "cover", label: "Flag (640×384)" },
@@ -81,23 +99,3 @@ export const IMAGE_SPECS = {
   unitIcon: { width: 360, height: 184, fit: "contain", label: "Unit icon (360×184, transparent)" },
   abilityIcon: { width: 128, height: 128, fit: "contain", label: "Ability icon (128×128, transparent)" },
 };
-
-/** Decode any browser-supported image and re-encode it as a PNG of the given size. */
-export async function fileToPng(file, { width, height, fit }) {
-  const bitmap = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  const scale = fit === "cover"
-    ? Math.max(width / bitmap.width, height / bitmap.height)
-    : Math.min(width / bitmap.width, height / bitmap.height);
-  const w = bitmap.width * scale;
-  const h = bitmap.height * scale;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(bitmap, (width - w) / 2, (height - h) / 2, w, h);
-  bitmap.close?.();
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG encoding failed"))), "image/png"),
-  );
-}

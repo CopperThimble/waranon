@@ -22,7 +22,7 @@ export const ROLE_LABELS = {
   hq_helo: "Command (helicopter)",
 };
 
-const SPECIALTY_LABELS = {
+export const SPECIALTY_LABELS = {
   _smoke_launcher: "Smoke launchers",
   _amphibie: "Amphibious",
   _leader: "Leader",
@@ -150,6 +150,7 @@ export const cleanGameText = (s) => String(s || "").replace(/#\w+\{([^}]*)\}/g, 
 /** Facet keys are 'spec:<specialty>' or 'tag:<TagSet entry>'. */
 export function facetLabel(key) {
   const [kind, value] = key.split(/:(.*)/);
+  if (kind === "content") return value === "dlc" ? "DLC only" : "Base game";
   const label = kind === "spec" ? SPECIALTY_LABELS[value] : TAG_LABELS[value];
   return label || value.replace(/^_/, "").replace(/_/g, " ");
 }
@@ -159,6 +160,8 @@ const DUPLICATE_TAGS = new Set(["Instructor", "CanBeAirlifted", "isGSR"]);
 
 export function unitFacets(base) {
   return [
+    // base.dlc is set by markDlc (lib/dlc.js): fielded only in paid Nemesis divisions
+    ...(base.divisions?.length ? [base.dlc ? "content:dlc" : "content:base"] : []),
     ...(base.specialties || []).map((s) => `spec:${s}`),
     ...(base.tags || []).filter((t) => !DUPLICATE_TAGS.has(t)).map((t) => `tag:${t}`),
   ];
