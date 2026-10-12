@@ -3,5 +3,9 @@
   "contact": {
     "label": "GitHub issues",
     "url": "https://github.com/CopperThimble/waranon/issues"
+  },
+  "analytics": {
+    "goatcounter": "",
+    "_comment": "Optional: your GoatCounter code (the 'xyz' in xyz.goatcounter.com). Empty = no analytics. Only active on the deployed site."
   }
 }

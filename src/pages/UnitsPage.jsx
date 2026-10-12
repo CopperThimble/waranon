@@ -1,18 +1,22 @@
 import { useMemo, useState } from "react";
 import AbilitiesEditor from "../components/AbilitiesEditor";
+import { UnitHover } from "../components/UnitCard";
+import PointsPanel from "../components/PointsPanel";
 import UnitPicker from "../components/UnitPicker";
 import WeaponsEditor from "../components/WeaponsEditor";
 import { SquadFigures } from "../components/Diagrams";
 import { cleanGameText } from "../lib/labels";
 import { Button, Empty, Field, ImageUpload, PageHeader, StatControl } from "../components/ui";
-import { NationFlag, UnitThumb } from "../components/visuals";
+import { DlcBadge, NationFlag, SpecIcon, UnitSpecIcons, UnitThumb } from "../components/visuals";
 import { IMAGE_SPECS, vanillaUnitUrl } from "../lib/images";
 import { CATEGORIES, STATS, allNations, customRef, newId, newToken, newUnit, resolveUnitRef, titleCase } from "../lib/model";
+import { VANILLA_ABILITIES, presetActive } from "../lib/abilities";
+import { mainSquadWeapon, squadWeaponCount } from "../lib/weapons";
 import { useProject } from "../state/useProject";
 
-export default function UnitsPage() {
+export default function UnitsPage({ route }) {
   const { game, project, addItem } = useProject();
-  const [selectedId, setSelectedId] = useState(project.units[0]?.id || null);
+  const [selectedId, setSelectedId] = useState(() => (route?.id && project.units.some((x) => x.id === route.id) ? route.id : project.units[0]?.id || null));
   const [picking, setPicking] = useState(false);
   const selected = project.units.find((u) => u.id === selectedId) || project.units[0];
 
@@ -53,11 +57,13 @@ export default function UnitsPage() {
                       className={`md-item ${info.unit.id === selected?.id ? "active" : ""}`}
                       onClick={() => setSelectedId(info.unit.id)}
                     >
-                      <UnitThumb info={info} className="unit-thumb-sm" />
+                      <UnitHover base={info.base} unit={info.unit} name={info.name}>
+                        <UnitThumb info={info} className="unit-thumb-sm" />
+                      </UnitHover>
                       <span className="md-item-text">
                         <span className="md-item-title">{info.name || "Unnamed"}</span>
                         <span className="md-item-sub">
-                          <NationFlag tag={info.country} size={14} /> {info.country} · {info.stats.cp} pts
+                          <NationFlag tag={info.country} size={14} /> {info.country} · <SpecIcon spec={info.base.role} size={12} /> {info.stats.cp} pts
                         </span>
                       </span>
                     </button>
@@ -66,7 +72,7 @@ export default function UnitsPage() {
               );
             })}
           </aside>
-          {selected && <UnitEditor key={selected.id} unit={selected} onSelect={setSelectedId} />}
+          {selected && <UnitEditor key={selected.id} unit={selected} onSelect={setSelectedId} initialTab={selected.id === route?.id ? route?.tab : null} />}
         </div>
       )}
       {picking && (
@@ -76,6 +82,14 @@ export default function UnitsPage() {
   );
 }
 
+const ABILITY_SPECS = new Set(VANILLA_ABILITIES.map((p) => p.spec).filter(Boolean));
+
+/** The base unit's specialty icons, with ability icons following the unit's ability edits. */
+function effectiveSpecialties(unit, base) {
+  const fromAbilities = VANILLA_ABILITIES.filter((p) => p.spec && presetActive(p, unit, base)).map((p) => p.spec);
+  return [...new Set([...base.specialties.filter((s) => !ABILITY_SPECS.has(s)), ...fromAbilities])];
+}
+
 const TABS = [
   { id: "stats", label: "Stats" },
   { id: "mobility", label: "Mobility" },
@@ -83,10 +97,10 @@ const TABS = [
   { id: "abilities", label: "Abilities" },
 ];
 
-function UnitEditor({ unit, onSelect }) {
+function UnitEditor({ unit, onSelect, initialTab }) {
   const { game, project, patchItem, removeItem, addItem, addAsset, removeAsset } = useProject();
   const [changingBase, setChangingBase] = useState(false);
-  const [tab, setTab] = useState("stats");
+  const [tab, setTab] = useState(TABS.some((t) => t.id === initialTab) ? initialTab : "stats");
   const info = resolveUnitRef(game, project, customRef(unit.id));
   const base = game.unitsById.get(unit.baseUnitId);
   const set = (patch) => patchItem("units", unit.id, patch);
@@ -119,7 +133,11 @@ function UnitEditor({ unit, onSelect }) {
           <input className="input title-input" value={unit.name} onChange={(e) => set({ name: e.target.value })} aria-label="Unit name" />
           <div className="muted small">
             Based on <strong>{titleCase(base.name)}</strong> ({base.country}, {CATEGORIES.find((c) => c.id === base.factory)?.label}) ·{" "}
-            <button type="button" className="link" onClick={() => setChangingBase(true)}>change base</button>
+            <button type="button" className="link" onClick={() => setChangingBase(true)}>change base</button>{" "}
+            <DlcBadge packs={base.dlc} />
+          </div>
+          <div className="unit-spec-row">
+            <UnitSpecIcons unit={base} specialties={effectiveSpecialties(unit, base)} size={20} />
           </div>
         </div>
       </div>
@@ -159,6 +177,8 @@ function UnitEditor({ unit, onSelect }) {
           />
         </div>
       </div>
+
+      <PointsPanel unit={unit} base={base} set={set} />
 
       <div className="tabs" role="tablist">
         {TABS.map((t) => {
@@ -279,15 +299,17 @@ function SquadControl({ unit, base, set }) {
 
   // the weapon carried by the most soldiers (usually the rifle)
   const loadout = base.weapon && game.weapons[base.weapon];
-  const main = useMemo(() => {
-    let best = null;
-    loadout?.turrets.forEach((t, ti) =>
-      t.mounted.forEach((m, mi) => {
-        if (!best || m.count > best.count) best = { slot: `${ti}.${mi}`, count: m.count, ammo: m.ammo };
-      }),
-    );
-    return best;
-  }, [loadout]);
+  const main = useMemo(() => mainSquadWeapon(loadout), [loadout]);
+  const carried = squadWeaponCount(game, base, unit);
+  const missing = value - carried;
+
+  /** Hand the missing weapons to the main weapon (the engine needs one weapon per soldier). */
+  function armEveryone() {
+    const w = structuredClone(unit.weapons || {});
+    const current = w.mounted?.[main.slot]?.count ?? main.count;
+    w.mounted = { ...w.mounted, [main.slot]: { ...w.mounted?.[main.slot], count: current + missing } };
+    set({ weapons: w });
+  }
 
   function change(v) {
     const n = Math.max(1, Math.round(v));
@@ -338,6 +360,15 @@ function SquadControl({ unit, base, set }) {
             </label>
           )}
           <p className="muted small">Extra soldiers reuse the squad's existing 3D models. Vanilla squads run from 2 to 16.</p>
+          <p className={`small ${missing > 0 ? "err-text" : "muted"}`}>
+            Weapons carried: {carried} for {value} soldier{value === 1 ? "" : "s"}
+            {missing > 0 ? ". The game won't load a squad where a soldier has no weapon." : " (the game needs at least one each)."}
+          </p>
+          {missing > 0 && main && (
+            <Button size="sm" variant="primary" onClick={armEveryone}>
+              Give the {missing} unarmed soldier{missing > 1 ? "s" : ""} a {cleanGameText(game.ammo[main.ammo]?.name || main.ammo)}
+            </Button>
+          )}
         </div>
       </div>
     </div>

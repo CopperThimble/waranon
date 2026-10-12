@@ -3,6 +3,7 @@ import Credits from "./components/Credits";
 import { loadGameData } from "./lib/gameData";
 import AbilitiesPage from "./pages/AbilitiesPage";
 import AlliancesPage from "./pages/AlliancesPage";
+import BalancePage from "./pages/BalancePage";
 import DivisionsPage from "./pages/DivisionsPage";
 import ExportPage from "./pages/ExportPage";
 import GalleryPage from "./pages/GalleryPage";
@@ -19,13 +20,15 @@ const PAGES = [
   { id: "units", label: "Units", icon: "▣", component: UnitsPage, count: (p) => p.units.length },
   { id: "abilities", label: "Abilities", icon: "✦", component: AbilitiesPage, count: (p) => (p.abilities || []).length },
   { id: "divisions", label: "Divisions", icon: "◆", component: DivisionsPage, count: (p) => p.divisions.length },
+  { id: "balance", label: "Balance", icon: "⚖", component: BalancePage },
   { id: "export", label: "Export", icon: "⇩", component: ExportPage },
   { id: "gallery", label: "Gallery", icon: "▦", component: GalleryPage },
 ];
 
-const pageFromHash = () => {
-  const id = window.location.hash.replace(/^#\/?/, "");
-  return PAGES.some((p) => p.id === id) ? id : "overview";
+/** "#/units/<unitId>/weapons" -> { page: "units", id: "<unitId>", tab: "weapons" } */
+const routeFromHash = () => {
+  const [page, id, tab] = window.location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
+  return { page: PAGES.some((p) => p.id === page) ? page : "overview", id: id || null, tab: tab || null };
 };
 
 export default function App() {
@@ -48,16 +51,19 @@ export default function App() {
 
 function Shell() {
   const { project, saveState } = useProject();
-  const [page, setPage] = useState(pageFromHash);
+  const [route, setRoute] = useState(routeFromHash);
+  const page = route.page;
 
   useEffect(() => {
-    const onHash = () => setPage(pageFromHash());
+    const onHash = () => setRoute(routeFromHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  const navigate = (id) => {
-    window.location.assign(`#/${id}`);
+  /** navigate("units") or navigate("units", { id, tab }) to open a specific item / tab. */
+  const navigate = (id, { id: itemId, tab } = {}) => {
+    const parts = [id, itemId, tab].filter(Boolean).map(encodeURIComponent);
+    window.location.assign(`#/${parts.join("/")}`);
     window.scrollTo({ top: 0 });
   };
   const Page = PAGES.find((p) => p.id === page).component;
@@ -90,7 +96,7 @@ function Shell() {
         <Credits />
       </nav>
       <main className="main">
-        <Page key={`${project.id}-${page}`} navigate={navigate} />
+        <Page key={`${project.id}-${page}-${route.id || ""}-${route.tab || ""}`} navigate={navigate} route={route} />
       </main>
     </div>
   );

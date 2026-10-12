@@ -1,13 +1,20 @@
 import { useState } from "react";
 import { Button, Empty, Field, ImageUpload, PageHeader, SideBadge } from "../components/ui";
+import NameListEditor from "../components/NameListEditor";
 import { NationFlag } from "../components/visuals";
 import { IMAGE_SPECS, vanillaFlagUrl } from "../lib/images";
 import { allAlliances, allianceById, newNation, sanitizeTag, tagProblem } from "../lib/model";
+import { CUSTOM_NAMES } from "../lib/unitNames";
 import { useProject } from "../state/useProject";
 
-export default function NationsPage({ navigate }) {
+const POOL_LABELS = {
+  CAN: "Canadian", DK: "Danish", ESP: "Spanish", FR: "French", GER: "German", LUX: "Luxembourgish",
+  NL: "Dutch", POL: "Polish", TCH: "Czechoslovak", UK: "British", US: "American", USSR: "Soviet",
+};
+
+export default function NationsPage({ navigate, route }) {
   const { project, addItem } = useProject();
-  const [selectedId, setSelectedId] = useState(project.nations[0]?.id || null);
+  const [selectedId, setSelectedId] = useState(() => (route?.id && project.nations.some((x) => x.id === route.id) ? route.id : project.nations[0]?.id || null));
   const selected = project.nations.find((n) => n.id === selectedId) || project.nations[0];
 
   function create() {
@@ -105,12 +112,13 @@ function NationEditor({ nation: n, navigate }) {
             </select>
           )}
         </Field>
-        <Field label="Random unit names" hint="Which language pool the game uses to name individual units.">
+        <Field label="Random unit names" hint="The pool the game picks each deployed unit's name from.">
           {(id) => (
             <select id={id} className="input" value={n.unitNamesDico} onChange={(e) => set({ unitNamesDico: e.target.value })}>
+              <option value={CUSTOM_NAMES}>Your own list (paste below)</option>
               {game.unitNameDicos.map((d) => (
                 <option key={d} value={d}>
-                  {d.replace("NAMES_", "")}
+                  {POOL_LABELS[d.replace("NAMES_", "")] || d.replace("NAMES_", "")} names
                 </option>
               ))}
             </select>
@@ -129,6 +137,18 @@ function NationEditor({ nation: n, navigate }) {
           )}
         </Field>
       </div>
+
+      {n.unitNamesDico === CUSTOM_NAMES ? (
+        <NameListEditor value={n.customNames || ""} onChange={(customNames) => set({ customNames })} />
+      ) : (
+        <p className="muted small">
+          Want your own names?{" "}
+          <button type="button" className="link" onClick={() => set({ unitNamesDico: CUSTOM_NAMES })}>
+            Paste a list instead
+          </button>
+          {n.customNames ? " (your previous list is kept)" : ""}.
+        </p>
+      )}
 
       <h3 className="section-title">Flag</h3>
       <div className="flag-row">

@@ -196,3 +196,32 @@ export function boxPlan(loadout, override) {
   );
   return { extra: ov.extraBoxes || [], assign };
 }
+
+/**
+ * Weapons a squad carries, counted the way the engine does when it loads the unit: each turret
+ * (one per soldier role / bone) counts once, with its largest NbWeapons. Several ammo types on one
+ * turret are one weapon (e.g. an RPG-7 with VR and VL rockets is 1, not 2). Must be >= SoldierCount,
+ * else "Too few weapons: squad has N weapons, but has M soldiers". Holds for all 691 vanilla squads.
+ */
+export function squadWeaponCount(game, base, unit = null) {
+  const loadout = base.weapon && game.weapons[base.weapon];
+  if (!loadout) return 0;
+  const perTurret = new Map();
+  for (const w of effectiveMounted(game, loadout, unit?.weapons || {})) {
+    const key = w.added?.coax ? `coax:${w.slot}` : w.ti;
+    const n = w.added ? w.added.count || 1 : w.override?.count ?? w.original?.count ?? 1;
+    perTurret.set(key, Math.max(perTurret.get(key) || 0, n));
+  }
+  return [...perTurret.values()].reduce((a, b) => a + b, 0);
+}
+
+/** The mounted weapon carried by the most soldiers (usually the rifle): { slot, count, ammo }. */
+export function mainSquadWeapon(loadout) {
+  let best = null;
+  loadout?.turrets.forEach((t, ti) =>
+    t.mounted.forEach((m, mi) => {
+      if (!best || m.count > best.count) best = { slot: `${ti}.${mi}`, count: m.count, ammo: m.ammo };
+    }),
+  );
+  return best;
+}

@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef } from "react";
-import { blobUrl, fileToPng } from "../lib/images";
+import { useEffect, useId, useRef, useState } from "react";
+import { blobUrl } from "../lib/images";
+import ImageCropper from "./ImageCropper";
 
 export function Button({ variant = "default", size, className = "", ...props }) {
   return <button type="button" className={`btn btn-${variant}${size ? ` btn-${size}` : ""} ${className}`} {...props} />;
@@ -76,13 +77,15 @@ export function PageHeader({ title, subtitle, actions }) {
 export function ImageUpload({ blob, fallbackUrl, spec, onChange, onClear, className = "" }) {
   const input = useRef(null);
   const url = blob ? blobUrl(blob) : fallbackUrl;
-  async function handle(file) {
+  // { source: Blob, name } while the cropper is open
+  const [cropping, setCropping] = useState(null);
+  function handle(file) {
     if (!file) return;
-    try {
-      onChange(await fileToPng(file, spec), file.name);
-    } catch (err) {
-      alert(`Couldn't read that image: ${err.message}`);
+    if (!file.type.startsWith("image/")) {
+      alert("That file isn't an image.");
+      return;
     }
+    setCropping({ source: file, name: file.name });
   }
   return (
     <div className={`image-upload ${className}`}>
@@ -107,6 +110,11 @@ export function ImageUpload({ blob, fallbackUrl, spec, onChange, onClear, classN
             {blob ? "Replace" : "Upload"}
           </button>
           {blob && (
+            <button type="button" className="link" onClick={() => setCropping({ source: blob, name: "cropped.png" })}>
+              Adjust crop
+            </button>
+          )}
+          {blob && (
             <button type="button" className="link danger" onClick={onClear}>
               Remove
             </button>
@@ -123,6 +131,17 @@ export function ImageUpload({ blob, fallbackUrl, spec, onChange, onClear, classN
           e.target.value = "";
         }}
       />
+      {cropping && (
+        <ImageCropper
+          source={cropping.source}
+          spec={spec}
+          onCancel={() => setCropping(null)}
+          onApply={(png) => {
+            onChange(png, cropping.name);
+            setCropping(null);
+          }}
+        />
+      )}
     </div>
   );
 }

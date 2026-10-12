@@ -8,6 +8,7 @@ import { buildModFiles } from "../src/lib/exportMod.js";
 import { indexGameData } from "../src/lib/gameData.js";
 import { customRef, defaultRuleFor, newDivision, newNation, newProject, newUnit } from "../src/lib/model.js";
 import { validateProject } from "../src/lib/validate.js";
+import { squadWeaponCount } from "../src/lib/weapons.js";
 
 const modRoot = path.resolve(process.argv[2] || "SampleMods/modexample");
 const game = indexGameData(JSON.parse(fs.readFileSync("public/data/game-data.json", "utf8")));
@@ -78,12 +79,24 @@ check(/AngleRotationMinPitch = -0\.08726646259971647\b/.test(wBlock), "depressio
 
 const p3 = newProject("squad");
 p3.nations.push({ ...newNation(), tag: "RUR", name: "Ruritania" });
-const rifles = { ...newUnit(game.unitsById.get("Descriptor_Unit_Rifles_US"), "RUR"), name: "Big Squad", stats: { soldiers: 12, health: 12 } };
+// Rifles carry 7 M16 + 3 other weapons = 10; 12 soldiers need 2 more M16s (engine: one weapon per soldier)
+const rifles = { ...newUnit(game.unitsById.get("Descriptor_Unit_Rifles_US"), "RUR"), name: "Big Squad", stats: { soldiers: 12, health: 12 }, weapons: { mounted: { "0.0": { count: 9 } } } };
 p3.units.push(rifles);
 const out3 = await buildModFiles({ project: p3, game, source });
 const uBlock = /export Descriptor_Unit_Big_Squad_RUR[\s\S]*?\n\)/.exec(out3.files.find((f) => f.path.endsWith("UniteDescriptor.ndf"))?.data || "")?.[0] || "";
 check(/SoldierCount = 12/.test(uBlock) && /MaxPhysicalDamages = 12/.test(uBlock), "squad of 12 with 12 health");
 check(validateProject({ ...p3, units: [{ ...rifles, stats: { soldiers: 12 } }] }, game).warnings.some((w) => w.message.includes("one health point per soldier")), "squad/health mismatch warns");
+const unarmed = validateProject({ ...p3, units: [{ ...rifles, weapons: undefined }] }, game).errors;
+check(unarmed.some((e) => e.message.includes("12 soldiers but only 10 weapons") && e.tab === "stats"), "more soldiers than weapons is an error (engine: Too few weapons)");
+check(!validateProject(p3, game).errors.some((e) => e.message.includes("weapons; the game refuses")), "12 soldiers with 12 weapons is fine");
+// two ammo types on one turret count once (the engine counted a user's 4 AKS + RPG-7 VR/VL squad as 5)
+const milTch = game.unitsById.get("Descriptor_Unit_Militia_CMD_TCH"); // 5 soldiers: 5 rifles + one launcher turret with 2 ammo types
+check(game.weapons[milTch.weapon].turrets[1].mounted.length === 2, "Militia_CMD_TCH has a turret with two ammo types");
+const shortMil = { ...newUnit(milTch, "RUR"), name: "Short Mil", weapons: { mounted: { "0.0": { count: 3 } } } };
+check(squadWeaponCount(game, milTch, shortMil) === 4, "3 rifles + a 2-ammo launcher = 4 weapons, not 5");
+check(validateProject({ ...p3, units: [shortMil] }, game).errors.some((e) => e.message.includes("5 soldiers but only 4 weapons")), "...so a 5-man squad with it is an error");
+const vanillaShort = game.units.filter((u) => u.stats.soldiers && squadWeaponCount(game, u) < u.stats.soldiers);
+check(vanillaShort.length === 0, `every vanilla squad has a weapon per soldier (${vanillaShort.length} exceptions)`);
 
 // 6. freely added boxes: extraBoxes + per-weapon box index
 const added = project({ weapons: { extraBoxes: [8], mounted: { "0.1": { box: 1 } } } });

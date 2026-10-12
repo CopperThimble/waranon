@@ -32,9 +32,19 @@ npm run data          # scripts/build_game_data.py  -> public/data/game-data.jso
 npm run data:ranges   # scripts/extract_stat_ranges.py -> data/stat_ranges.json (every field's min/max)
 npm run test:export   # end-to-end exporter check against SampleMods/modexample (incl. idempotency)
 npm run test:rules    # weapon loadout rules (shared ammo boxes, mount types)
+npm run model         # scripts/build_cost_model.mjs -> public/data/cost-model.json (points model; rerun after `npm run data`)
+npm run test:model    # points model sanity checks
 ```
 
+### Points model
+
+The Balance page and the "Suggested cost" panel in the unit editor come from `src/lib/costModel.js`. It fits a ridge regression on log(cost) to every priced vanilla unit: one model per category (Tanks, Infantry…) and, inside a category, one per unit type (command, ATGM team, howitzer…) when the type has at least 40 units *and* its own model beats the category model on held-out units. Inputs are stats, armor, weapon power/range/rate (after the user's edits and added weapons), traits and abilities. `npm run model` prints held-out accuracy per model (about ±4–11% typical miss) and the biggest price drivers. It can't see things the game prices outside the unit (card availability, veterancy, division role), so very cheap/expensive specialists will look off.
+
 Unit portraits live in `images/portraits/{NATO,PACT}/*.webp`, mirroring the game's `GameData/Assets/2D/Interface/Common/UnitsIcons/` layout. They are made from a local PNG extraction in `images/unit-icons/` (gitignored, with `portraits_manifest.json`) by `python scripts/convert_portraits.py` (needs `pip install pillow`; 396 MB of PNG becomes about 45 MB of WebP). Each unit's `portrait` field in the catalog is resolved through its button texture in `ButtonTexturesUnites.ndf`.
+
+Role, trait and ability icons (`images/specialties/`, 63 files) and weapon trait icons (`images/traits/`, 43 files) were cropped from the game's `UnitIcons-Spec` and `Traits` atlases with the separate EugenImageExtractor (`warno-portraits atlas PC/Atlas/UnitIcons-Spec/TextureSmall.atlas --crop Specialties --out images/specialties`). They're resolved through `UnitSpecialties.ndf` (`game.specialtyIcons`) and are part of the game-art switch.
+
+DLC: the game files don't say which divisions are paid DLC (the engine checks Steam ownership), so `src/lib/dlc.js` lists the Nemesis packs by division CfgName. A unit counts as DLC when every division that fields it is DLC. Add new packs there when they're released.
 
 Vanilla unit and weapon names come from `data/vanilla_localisation.csv`, which is from an older patch, so divisions added since then fall back to their config names.
 
@@ -44,7 +54,7 @@ Vanilla unit and weapon names come from `data/vanilla_localisation.csv`, which i
 src/lib/        exportMod.js (patching), ndf.js (text helpers), validate.js, model.js,
                 gameData.js, storage.js (IndexedDB), images.js, modFolder.js (folder access)
 src/state/      ProjectContext (load/autosave/CRUD), useProject
-src/pages/      Overview, Alliances, Nations, Units, Divisions, Export
+src/pages/      Overview, Alliances, Nations, Units, Abilities, Divisions, Balance, Export, Gallery
 src/components/ ui primitives, UnitPicker, flags/thumbnails
 scripts/        data extraction (Python), exporter test (Node)
 ```
@@ -70,3 +80,11 @@ npm run art -- on    # restore both
 ```
 
 With art off, the build contains no game images (pictures fall back to placeholders). CI can force it with `WARANON_GAME_ART=off`. Untracking removes the art from the branch and the deployed site once pushed, but not from git history. `images/unit-icons/` (locally extracted portraits) is gitignored separately and is never published by these commands.
+
+## Privacy, backups and analytics
+
+- Projects are stored only in the visitor's browser (IndexedDB); mod files are read and written locally. Nothing is uploaded, and there are no cookies or tracking.
+- "Write into folder" (Chrome/Edge) asks the browser for permission, which lasts only while the tab is open. Before overwriting anything, it backs up the original files to `waranon-backups/<date-time>/` inside the mod folder, with a README explaining how to undo. "Download .zip" is the default.
+- Optional page-view counting: set `analytics.goatcounter` in `waranon.config.json` to your GoatCounter code. It's cookieless, only runs on the deployed build, and the footer mentions it automatically when on.
+
+Tests: `npm run test:export`, `npm run test:rules`, `npm run test:write` (backup/undo).

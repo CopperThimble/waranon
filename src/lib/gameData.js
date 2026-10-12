@@ -1,12 +1,13 @@
 // Loads the compact catalog produced by scripts/build_game_data.py and adds lookup maps.
+import { markDlc } from "./dlc.js";
 
 export function indexGameData(raw) {
-  return {
+  return markDlc({
     ...raw,
     unitsById: new Map(raw.units.map((u) => [u.id, u])),
     divisionsById: new Map(raw.divisions.map((d) => [d.id, d])),
     countriesByTag: new Map(raw.countries.map((c) => [c.tag, c])),
-  };
+  });
 }
 
 let pending = null;
@@ -25,4 +26,19 @@ export function loadGameData() {
       });
   }
   return pending;
+}
+
+let costModelPending = null;
+
+/** The points model trained by scripts/build_cost_model.mjs (public/data/cost-model.json). */
+export function loadCostModel() {
+  if (!costModelPending) {
+    costModelPending = fetch(`${import.meta.env.BASE_URL}data/cost-model.json`)
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => {
+        costModelPending = null;
+        return null;
+      });
+  }
+  return costModelPending;
 }

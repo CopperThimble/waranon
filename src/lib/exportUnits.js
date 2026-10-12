@@ -2,7 +2,7 @@
 // applying stat / ability overrides, and serializing custom abilities.
 
 import { SF_XP_PACK, TARGET_PRESETS, VANILLA_ABILITIES, EFFECTS_BY_KEY, presetActive } from "./abilities.js";
-import { GAME_TICK, snapToTick } from "./model.js";
+import { GAME_TICK, guidFrom, snapToTick } from "./model.js";
 import { appendToList, escapeRegExp, findObjectSpan, formatExact, matchClose, setExactByRegex, setNumberByRegex, setNumberInObject } from "./ndf.js";
 
 const NUM = "(-?\\d+(?:\\.\\d*)?)";
@@ -45,6 +45,7 @@ export const STAT_PATCHERS = {
   armorTop: armor("Top"),
   ecm: inObj("TDamageModuleDescriptor", "HitRollECM"),
   soldiers: inObj("TInfantrySquadModuleDescriptor", "SoldierCount"),
+  supply: inObj("TSupplyModuleDescriptor", "SupplyCapacity"),
   accel: inObj("TLandMovementModuleDescriptor", "MaxAccelerationGRU"),
   decel: inObj("TLandMovementModuleDescriptor", "MaxDecelerationGRU"),
   turnTime: inObj("TLandMovementModuleDescriptor", "TempsDemiTour"),
@@ -162,14 +163,23 @@ function patchAbilities(t, unit, base, customNames) {
 }
 
 /**
+ * Give every DescriptorId in a copied block a new GUID: the first gets `guid`, later ones a GUID
+ * derived from it (stable across exports). Infantry squads carry a second one inside
+ * TInfantrySquadModuleDescriptor > MimeticDescriptor; keeping it causes "Duplicate descriptor GUID".
+ */
+export function renewDescriptorIds(block, guid) {
+  let n = 0;
+  return block.replace(/(DescriptorId\s*=\s*)GUID:\{[^}]*\}/g, (m, prefix) => `${prefix}GUID:{${n++ === 0 ? guid : guidFrom(`${guid}:${n - 1}`)}}`);
+}
+
+/**
  * Copy a vanilla TEntityDescriptor and give it a new identity. Visual modules
  * (MimeticName, ReferenceMesh, depictions) are kept so it reuses the base unit's 3D model.
  */
 export function cloneUnitBlock(block, r, warnings = [], customNames = new Map()) {
   const { unit, base } = r;
-  let t = block
+  let t = renewDescriptorIds(block, unit.guid)
     .replace(new RegExp(`^(export\\s+)?${escapeRegExp(base.id)}\\b`), `export ${r.descriptor}`)
-    .replace(/(DescriptorId\s*=\s*)GUID:\{[^}]*\}/, `$1GUID:{${unit.guid}}`)
     .replace(/(ClassNameForDebug\s*=\s*)'[^']*'/, `$1'Unit_${r.stem}'`)
     .replace(/(MotherCountry\s*=\s*)'[^']*'/, `$1'${r.tag}'`)
     .replace(/(Coalition\s*=\s*)TWargameCoalition\/\w+/, `$1TWargameCoalition/${r.side}`)

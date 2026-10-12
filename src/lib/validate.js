@@ -1,4 +1,5 @@
 import { EFFECTS_BY_KEY } from "./abilities.js";
+import { CUSTOM_NAMES, MAX_NAMES, MIN_NAMES, parseNameList } from "./unitNames.js";
 import {
   MAX_BOXES,
   MAX_TURRETS,
@@ -10,6 +11,7 @@ import {
   emptyBoxes,
   mountProblem,
   normalizeWeapons,
+  squadWeaponCount,
   turretAnchors,
   turretLabel,
   weaponTotals,
@@ -35,8 +37,8 @@ import {
 export function validateProject(project, game) {
   const errors = [];
   const warnings = [];
-  const err = (scope, id, message) => errors.push({ scope, id, message });
-  const warn = (scope, id, message) => warnings.push({ scope, id, message });
+  const err = (scope, id, message, tab) => errors.push({ scope, id, message, tab });
+  const warn = (scope, id, message, tab) => warnings.push({ scope, id, message, tab });
 
   if (!project.name?.trim()) err("project", null, "Project needs a name.");
 
@@ -51,6 +53,12 @@ export function validateProject(project, game) {
     if (!n.flagAssetId && !game.countriesByTag.has(n.baseFlagCountry))
       err("nation", n.id, `${label}: upload a flag or pick a vanilla flag.`);
     if (n.flagAssetId && !project.assets[n.flagAssetId]) err("nation", n.id, `${label}: flag image is missing.`);
+    if (n.unitNamesDico === CUSTOM_NAMES) {
+      const { names } = parseNameList(n.customNames);
+      if (!names.length) err("nation", n.id, `${label}: paste at least one unit name, or pick a vanilla name pool.`);
+      else if (names.length > MAX_NAMES) err("nation", n.id, `${label}: ${names.length} unit names; keep it under ${MAX_NAMES}.`);
+      else if (names.length < MIN_NAMES) warn("nation", n.id, `${label}: only ${names.length} unit names, so they'll repeat a lot in game.`);
+    }
   }
 
   const nationTags = new Set(allNations(game, project).map((n) => n.tag));
@@ -77,34 +85,44 @@ export function validateProject(project, game) {
       const v = u.stats[stat.key];
       if (base.stats[stat.key] == null) continue;
       if (typeof v !== "number" || !Number.isFinite(v)) {
-        err("unit", u.id, `${label}: ${stat.label} must be a number.`);
+        err("unit", u.id, `${label}: ${stat.label} must be a number.`, stat.tab);
         continue;
       }
-      if (!stat.decimals && !Number.isInteger(v)) err("unit", u.id, `${label}: ${stat.label} must be a whole number.`);
+      if (!stat.decimals && !Number.isInteger(v)) err("unit", u.id, `${label}: ${stat.label} must be a whole number.`, stat.tab);
       const hardMin = stat.hardMin ?? 0;
-      if (v < hardMin) err("unit", u.id, `${label}: ${stat.label} can't be below ${hardMin}.`);
-      if (stat.hardMax != null && v > stat.hardMax) err("unit", u.id, `${label}: ${stat.label} can't exceed ${stat.hardMax}.`);
+      if (v < hardMin) err("unit", u.id, `${label}: ${stat.label} can't be below ${hardMin}.`, stat.tab);
+      if (stat.hardMax != null && v > stat.hardMax) err("unit", u.id, `${label}: ${stat.label} can't exceed ${stat.hardMax}.`, stat.tab);
       if (stat.armor) {
         const max = game.hardLimits[base.armorFamily] || 1;
         if (!Number.isInteger(v) || v < 1 || v > max)
-          err("unit", u.id, `${label}: ${stat.label} armor must be a whole number 1–${max} (game table size).`);
+          err("unit", u.id, `${label}: ${stat.label} armor must be a whole number 1–${max} (game table size).`, stat.tab);
         continue;
       }
       const r = ranges[stat.key];
       if (r && (v < r.min || v > r.max))
-        warn("unit", u.id, `${label}: ${stat.label} ${v} is outside the vanilla ${base.factory} range (${r.min}–${r.max}).`);
+        warn("unit", u.id, `${label}: ${stat.label} ${v} is outside the vanilla ${base.factory} range (${r.min}–${r.max}).`, stat.tab);
     }
     if (!inAnyDivision.has(`custom:${u.id}`))
       warn("unit", u.id, `${label}: not in any division, so it won't be selectable in-game.`);
 
-    validateWeapons(u, base, label, game, err, warn);
+    validateWeapons(u, base, label, game, (s, id, m) => err(s, id, m, "weapons"), (s, id, m) => warn(s, id, m, "weapons"));
     // In vanilla, infantry health is always one point per soldier.
     const soldiers = u.stats.soldiers ?? base.stats.soldiers;
     const health = u.stats.health ?? base.stats.health;
+    if (soldiers != null) {
+      const carried = squadWeaponCount(game, base, u);
+      if (carried < soldiers)
+        err(
+          "unit",
+          u.id,
+          `${label}: ${soldiers} soldiers but only ${carried} weapons; the game refuses to load a squad where some soldiers have no weapon. Raise a weapon count or lower the squad size.`,
+          "stats",
+        );
+    }
     if (soldiers != null && soldiers !== health)
-      warn("unit", u.id, `${label}: ${soldiers} soldiers but ${health} health; vanilla infantry always has one health point per soldier.`);
+      warn("unit", u.id, `${label}: ${soldiers} soldiers but ${health} health; vanilla infantry always has one health point per soldier.`, "stats");
     for (const id of u.abilities?.custom || []) {
-      if (!abilityIds.has(id)) err("unit", u.id, `${label}: uses a custom ability that no longer exists.`);
+      if (!abilityIds.has(id)) err("unit", u.id, `${label}: uses a custom ability that no longer exists.`, "abilities");
     }
   }
 
