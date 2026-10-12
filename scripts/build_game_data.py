@@ -59,6 +59,13 @@ def tail(s):
     return s.split("/")[-1] if s else s
 
 
+def exact_num(x):
+    """Full precision (turret angles are compared against exact pi/2 by the engine; never round them)."""
+    if x is None:
+        return None
+    return int(x) if float(x).is_integer() else x
+
+
 def clean_num(x):
     if x is None:
         return None
@@ -142,6 +149,7 @@ def extract_units(path, loc, building=False):
         fuel = mods.get("TFuelModuleDescriptor")
         land = mods.get("TLandMovementModuleDescriptor")
         plane = mods.get("AirplaneMovementDescriptor")
+        apparence = mods.get("VehicleApparenceModuleDescriptor")
         plane_mod = mods.get("TAirplaneModuleDescriptor")
         heli = mods.get("THelicopterMovementModuleDescriptor")
         deploy = mods.get("TWeaponDeploymentModuleDescriptor")
@@ -175,6 +183,7 @@ def extract_units(path, loc, building=False):
             "xpPack": tail(sym(get_field(xp, "ExperienceLevelsPackDescriptor"))) if xp else None,
             "capacities": [tail(sym(c)) for c in caps[1]] if caps else [],
             "hasCapaciteModule": "TCapaciteModuleDescriptor" in mods,
+            "blackHoleKey": sym(get_field(apparence, "BlackHoleKey")) if apparence else None,
             "stats": {
                 "cp": clean_num(num(map_lookup(get_field(prod, "ProductionRessourcesNeeded"), "Resource_CommandPoints"))),
                 "health": clean_num(num(get_field(mods.get("TBaseDamageModuleDescriptor"), "MaxPhysicalDamages"))),
@@ -293,14 +302,18 @@ def extract_weapons(path):
                     "count": clean_num(num(get_field(mw, "NbWeapons"))),
                     "box": clean_num(num(get_field(mw, "AmmoBoxIndex"))),
                     "hidden": sym(get_field(mw, "HideInInterface")) == "True",
+                    "slot": slot_number(mw),
                 })
             turrets.append({
                 "type": t[1].replace("TTurret", "").replace("Descriptor", ""),
-                "rotationSpeed": clean_num(num(get_field(t, "VitesseRotation"))),  # rad/s
-                "traverse": clean_num(num(get_field(t, "AngleRotationMax"))),  # rad, half-arc
-                "facing": clean_num(num(get_field(t, "AngleRotationBase"))),  # rad, 0 = forward
-                "elevation": clean_num(num(get_field(t, "AngleRotationMaxPitch"))),  # rad
-                "depression": clean_num(num(get_field(t, "AngleRotationMinPitch"))),  # rad, negative = below horizon
+                "rotationSpeed": exact_num(num(get_field(t, "VitesseRotation"))),  # rad/s
+                "traverse": exact_num(num(get_field(t, "AngleRotationMax"))),  # rad, half-arc
+                "facing": exact_num(num(get_field(t, "AngleRotationBase"))),  # rad, 0 = forward
+                "elevation": exact_num(num(get_field(t, "AngleRotationMaxPitch"))),  # rad
+                "depression": exact_num(num(get_field(t, "AngleRotationMinPitch"))),  # rad, negative = below horizon
+                "bone": clean_num(num(get_field(t, "YulBoneOrdinal"))),
+                "tag": sym(get_field(t, "Tag")),
+                "master": clean_num(num(get_field(t, "MasterTurretYulBoneOrdinal"))),
                 "mounted": mounted,
             })
         weapons[name] = {
@@ -376,6 +389,50 @@ def extract_impact_presets(path):
     """Impact presets: name -> which surfaces have their own effect (all include sound/FX per surface)."""
     text = path.read_text(encoding="utf-8")
     return sorted(set(re.findall(r"\('(\w+)', TImpactHappening", text)))
+
+
+def slot_number(mounted):
+    """Weapon slot N, from WeaponActiveAndCanShootPropertyName = "WeaponActiveAndCanShoot_N"."""
+    name = sym(get_field(mounted, "WeaponActiveAndCanShootPropertyName")) or ""
+    m = re.search(r"_(\d+)$", name)
+    return int(m.group(1)) if m else None
+
+
+def extract_vehicle_depictions(path):
+    """
+    Ground-vehicle depictions (DepictionVehicles.ndf), keyed by BlackHoleKey:
+    {key: {"slots": {N: {"kind": "InstantFire"|"ContinuousFire"|"MissileCarriageFire", "anchors": [...], "fx": "Weapon_X"}}}}
+    Each weapon slot N has a fire operator (muzzle point = anchors) and an Actions entry
+    "weapon_effet_tagN" -> Weapon_X (firing FX + sound) in the unit's registration.
+    """
+    text = path.read_text(encoding="utf-8")
+    ops = {}
+    for name, kind, body in re.findall(r"^(DepictionOperator_\w+?_Weapon\d+) is DepictionOperator_Weapon(\w+)\s*\(([\s\S]*?)\n\)", text, re.M):
+        tag = re.search(r'FireEffectTag\s*=\s*"weapon_effet_tag(\d+)"', body)
+        anchors = re.search(r"Anchors\s*=\s*\[([^\]]*)\]", body)
+        ops[name] = {
+            "slot": int(tag.group(1)) if tag else None,
+            "kind": kind,
+            "anchors": re.findall(r'"([^"]+)"', anchors.group(1)) if anchors else [],
+        }
+    out = {}
+    for m in re.finditer(r"unnamed TacticVehicleDepictionRegistration\s*\(\s*BlackHoleKey\s*=\s*'([^']+)'", text):
+        start = m.start()
+        end = text.find("\nunnamed ", m.end())
+        block = text[start:end if end > 0 else len(text)]
+        actions = dict(re.findall(r'\(\s*"weapon_effet_tag(\d+)"\s*,\s*(\w+)\s*\)', block))
+        slots = {}
+        for op in re.findall(r"(DepictionOperator_\w+?_Weapon\d+)", block):
+            o = ops.get(op)
+            if o and o["slot"] is not None:
+                slots[o["slot"]] = {"kind": o["kind"], "anchors": o["anchors"], "fx": actions.get(str(o["slot"]))}
+        out[m.group(1)] = {"slots": slots}
+    return out
+
+
+def extract_firing_effects(path):
+    """Firing FX + sound pairs (DepictionWeaponBlock.ndf): Weapon_X is TCompositeHappening(...)."""
+    return sorted(re.findall(r"^(Weapon_\w+) is TCompositeHappening", path.read_text(encoding="utf-8"), re.M))
 
 
 def extract_unit_portraits(path):
@@ -574,6 +631,11 @@ def main():
     div_types = re.findall(r"\('(\w+)',\s*'Texture_Division_Type_", (ui / "DivisionTypes.ndf").read_text())
 
     used_weapons = {u["weapon"] for u in units if u["weapon"]}
+    depictions = extract_vehicle_depictions(gfx / "Depictions" / "DepictionVehicles.ndf")
+    for u in units:
+        if u.get("blackHoleKey") not in depictions:
+            u["blackHoleKey"] = None  # infantry / aircraft depictions aren't cloneable yet
+    used_keys = {u["blackHoleKey"] for u in units if u["blackHoleKey"]}
     portraits = extract_unit_portraits(ui / "Textures" / "ButtonTexturesUnites.ndf")
     for u in units:
         u["portrait"] = portraits.get(u["buttonTexture"])
@@ -594,6 +656,8 @@ def main():
         "capacities": extract_capacities(gfx, gen / "Gameplay" / "Effects" / "EffetsSurUnite.ndf"),
         "specialtyIcons": extract_specialty_icons(ui),
         "impactPresets": extract_impact_presets(gfx / "MimeticImpactMapping.ndf"),
+        "depictions": {k: v for k, v in depictions.items() if k in used_keys},
+        "firingEffects": extract_firing_effects(gfx / "DepictionWeaponBlock.ndf"),
         "weaponIcons": extract_weapon_icons(ui / "Textures" / "WeaponTextures.ndf"),
         "divisions": divisions,
         "rules": {k: v for k, v in rules.items() if k in used_rules},

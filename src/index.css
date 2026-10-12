@@ -470,3 +470,5 @@ textarea.input { resize: vertical; }
 .credits { margin-top: auto; padding: 10px 6px 0; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.45; color: var(--muted); }
 .credits p { margin: 0 0 6px; }
 .credits a { color: var(--accent-2); }
+.add-weapon-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.mounted-added { border-style: dashed; border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }

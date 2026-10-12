@@ -1,22 +1,21 @@
 // Image helpers: vanilla art lookups (bundled /images) and user uploads.
 // "game-art" is aliased in vite.config.js to gameArt.on.js or gameArt.off.js, driven by
 // "gameArt" in waranon.config.json, so switching it off leaves no game art in the build.
-import { emblemModules, flagModules, portraitModules, unitModules, weaponModules } from "game-art";
+import { emblemModules, flagModules, portraitModules, weaponModules } from "game-art";
 
 export const gameArtEnabled = import.meta.env.VITE_GAME_ART !== "off";
 
 const flagUrls = indexGlob(flagModules);
 const emblemUrls = indexGlob(emblemModules);
 const weaponUrls = indexGlob(weaponModules);
-// Old portrait set, named after unit descriptors (Descriptor_Unit_X.png). Covers ~57% of units.
-const unitUrls = indexGlob(unitModules);
-// Extracted portraits: images/unit-icons/NATO/M1A1_Abrams_US.png, keyed "nato/m1a1_abrams_us" to match unit.portrait.
-const portraitUrls = indexByPath(portraitModules, "/images/unit-icons/");
+// Portraits: images/portraits/NATO/M1A1_Abrams_US.webp, keyed "nato/m1a1_abrams_us" to match unit.portrait.
+const PORTRAIT_DIR = "/images/portraits/";
+const portraitUrls = indexByPath(portraitModules, PORTRAIT_DIR);
 
-/** Every extracted portrait: { path: "NATO/M1A1_Abrams_US", side: "NATO", name: "M1A1_Abrams_US", url }. Empty if not extracted. */
+/** Every portrait: { path: "NATO/M1A1_Abrams_US", side: "NATO", name: "M1A1_Abrams_US", url }. Empty when game art is off. */
 export const allPortraits = Object.entries(portraitModules)
   .map(([file, url]) => {
-    const path = file.slice("/images/unit-icons/".length).replace(/\.png$/i, "");
+    const path = file.slice(PORTRAIT_DIR.length).replace(/\.(png|webp)$/i, "");
     const [side, name] = path.split("/");
     return { path, side, name, url };
   })
@@ -33,7 +32,7 @@ function indexGlob(modules) {
 function indexByPath(modules, prefix) {
   const out = {};
   for (const [path, url] of Object.entries(modules)) {
-    out[path.slice(prefix.length).replace(/\.png$/i, "").toLowerCase()] = url;
+    out[path.slice(prefix.length).replace(/\.(png|webp)$/i, "").toLowerCase()] = url;
   }
   return out;
 }
@@ -57,13 +56,9 @@ export function vanillaWeaponUrl(fileBase) {
   return fileBase ? weaponUrls[fileBase.toLowerCase()] || null : null;
 }
 
-/**
- * Portrait for a vanilla unit: the game's own icon (via its button texture, unit.portrait),
- * falling back to the older descriptor-named set if the extracted icons aren't present.
- */
+/** Portrait for a vanilla unit: the game's own icon, found through its button texture (unit.portrait). */
 export function vanillaUnitUrl(unit) {
-  if (!unit) return null;
-  return (unit.portrait && portraitUrls[unit.portrait.toLowerCase()]) || unitUrls[unit.id.toLowerCase()] || null;
+  return (unit?.portrait && portraitUrls[unit.portrait.toLowerCase()]) || null;
 }
 
 // Object URLs for stored Blobs. Cached per Blob and never revoked: blobs are few

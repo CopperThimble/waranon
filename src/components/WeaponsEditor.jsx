@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { silhouetteType, turretColor } from "../lib/diagrams";
 import { vanillaWeaponUrl } from "../lib/images";
 import { ammoCategoryLabel, cleanGameText, damageFamilyLabel } from "../lib/labels";
-import { AMMO_STATS } from "../lib/model";
+import { AMMO_STATS, newId } from "../lib/model";
 import {
   BOX_MATCH_FIELDS,
   MAX_BOXES,
@@ -15,6 +15,11 @@ import {
   mountProblem,
   normalizeWeapons,
   turretLabel,
+  MAX_TURRETS,
+  MAX_WEAPONS,
+  defaultFiringEffect,
+  turretAnchors,
+  weaponTotals,
 } from "../lib/weapons";
 import { useProject } from "../state/useProject";
 import { TrajectoryChart, TurretArcs } from "./Diagrams";
@@ -42,6 +47,7 @@ function prune(w) {
     if (entries.length) out[key] = Object.fromEntries(entries);
   }
   if (w.extraBoxes?.length) out.extraBoxes = w.extraBoxes;
+  if (w.added?.length) out.added = w.added;
   return Object.keys(out).length ? out : undefined;
 }
 
@@ -58,6 +64,7 @@ export default function WeaponsEditor({ unit, base, set }) {
   const loadout = base.weapon && game.weapons[base.weapon];
   const [openSlot, setOpenSlot] = useState(null);
   const [swapSlot, setSwapSlot] = useState(null);
+  const [adding, setAdding] = useState(null); // { turret, coax } while picking ammo for a new weapon
 
   if (!loadout || !loadout.turrets.length) return <p className="muted tab-empty">This unit is unarmed.</p>;
 
@@ -101,6 +108,65 @@ export default function WeaponsEditor({ unit, base, set }) {
     });
   }
 
+  const totals = weaponTotals(loadout, ov);
+  const canAddWeapons = Boolean(base.blackHoleKey);
+
+  /** Pick a box for new ammo: an existing box it can share, else a new box, else box 1. */
+  function boxFor(ammo, boxes) {
+    for (let box = 0; box < boxes.length; box++) {
+      const req = boxRequirements(game, loadout, ov, "__new__", box);
+      if (req && fitsBox(ammo, req)) return { box };
+    }
+    return canAddBox ? { box: "new" } : { box: 0 };
+  }
+
+  function addWeapon(turret, coax, ammoId) {
+    const choice = boxFor(game.ammo[ammoId], salvos);
+    update((w) => {
+      let box = choice.box;
+      if (box === "new") {
+        w.extraBoxes = [...(w.extraBoxes || []), 10];
+        box = vanillaBoxes + w.extraBoxes.length - 1;
+      }
+      w.added = [...(w.added || []), { id: newId(), turret, coax, ammo: ammoId, count: 1, box, fx: null }];
+      return w;
+    });
+  }
+
+  function patchAdded(id, patch) {
+    update((w) => {
+      w.added = (w.added || []).map((a) => (a.id === id ? { ...a, ...patch } : a));
+      return w;
+    });
+  }
+
+  function moveAdded(id, target) {
+    update((w) => {
+      let box = target;
+      if (target === "new") {
+        w.extraBoxes = [...(w.extraBoxes || []), 10];
+        box = vanillaBoxes + w.extraBoxes.length - 1;
+      }
+      w.added = (w.added || []).map((a) => (a.id === id ? { ...a, box } : a));
+      return w;
+    });
+  }
+
+  /** Remove an added weapon; drop its box too if it was an added box nothing else uses. */
+  function removeAdded(id) {
+    const victim = (ov.added || []).find((a) => a.id === id);
+    const othersOnBox = mounted.filter((w) => w.box === victim?.box && w.slot !== `add:${id}`).length;
+    update((w) => {
+      w.added = (w.added || []).filter((a) => a.id !== id);
+      if (victim && victim.box >= vanillaBoxes && !othersOnBox) {
+        w.extraBoxes = (w.extraBoxes || []).filter((_, i) => i !== victim.box - vanillaBoxes);
+        for (const mo of Object.values(w.mounted || {})) if (mo.box > victim.box) mo.box -= 1;
+        for (const a of w.added) if (a.box > victim.box) a.box -= 1;
+      }
+      return w;
+    });
+  }
+
   function addBox() {
     update((w) => {
       w.extraBoxes = [...(w.extraBoxes || []), 10];
@@ -116,6 +182,10 @@ export default function WeaponsEditor({ unit, base, set }) {
         if (mo.box === box) delete mo.box;
         else if (mo.box > box) mo.box -= 1;
         w.mounted[slot] = mo;
+      }
+      for (const a of w.added || []) {
+        if (a.box === box) a.box = 0;
+        else if (a.box > box) a.box -= 1;
       }
       return w;
     });
@@ -267,21 +337,13 @@ export default function WeaponsEditor({ unit, base, set }) {
             )}
             <div className="mounted-list">
               {mounted
-                .filter((w) => w.ti === ti)
+                .filter((w) => w.ti === ti && !w.added)
                 .map((w) => (
                   <MountedWeapon
                     key={w.slot}
                     weapon={w}
                     name={nameOf(w)}
-                    boxes={salvos.map((_, box) => {
-                      const req = boxRequirements(game, loadout, ov, w.slot, box);
-                      return {
-                        box,
-                        users: usersOf(box).filter((x) => x.slot !== w.slot).map(nameOf),
-                        fits: !w.ammo || fitsBox(w.ammo, req, w.stats),
-                        requirement: req ? `${req.values.shotsPerSalvo} shot${req.values.shotsPerSalvo === 1 ? "" : "s"}/salvo` : null,
-                      };
-                    })}
+                    boxes={boxOptions(w)}
                     canAddBox={canAddBox}
                     inConflict={conflictSlots.has(w.slot)}
                     open={openSlot === w.slot}
@@ -297,10 +359,57 @@ export default function WeaponsEditor({ unit, base, set }) {
                     }
                   />
                 ))}
+              {mounted
+                .filter((w) => w.added && w.ti === ti)
+                .map((w) => (
+                  <AddedWeapon
+                    key={w.slot}
+                    weapon={w}
+                    name={nameOf(w)}
+                    base={base}
+                    boxes={boxOptions(w)}
+                    canAddBox={canAddBox}
+                    inConflict={conflictSlots.has(w.slot)}
+                    onSwap={() => setSwapSlot(w.slot)}
+                    onMove={(box) => moveAdded(w.added.id, box)}
+                    onChange={(patch) => patchAdded(w.added.id, patch)}
+                    onRemove={() => removeAdded(w.added.id)}
+                  />
+                ))}
             </div>
+            {canAddWeapons && (
+              <div className="add-weapon-row">
+                {(() => {
+                  const noMuzzle = !turretAnchors(game, base, ti).length;
+                  const full = totals.weapons >= MAX_WEAPONS;
+                  const why = noMuzzle ? "This turret has no muzzle point (missile launchers aren't supported yet)" : full ? `Vanilla never uses more than ${MAX_WEAPONS} weapons` : "";
+                  const coaxWhy = why || (t.type !== "TwoAxis" ? "Coaxial guns need a rotating turret" : t.master != null ? "This turret is itself coaxial" : totals.turrets >= MAX_TURRETS ? `Vanilla never uses more than ${MAX_TURRETS} turrets` : "");
+                  return (
+                    <>
+                      <Button size="sm" onClick={() => setAdding({ turret: ti, coax: false })} disabled={!!why} title={why}>
+                        + Add weapon to this turret
+                      </Button>
+                      <Button size="sm" onClick={() => setAdding({ turret: ti, coax: true })} disabled={!!coaxWhy} title={coaxWhy}>
+                        + Add coaxial gun
+                      </Button>
+                      {(why || coaxWhy) && <span className="muted small">{why || coaxWhy}</span>}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         );
       })}
+      {!canAddWeapons && (
+        <p className="muted small">Adding weapons works for ground vehicles so far; infantry and aircraft use different 3D depictions.</p>
+      )}
+      {canAddWeapons && (
+        <p className="muted small">
+          {totals.weapons}/{MAX_WEAPONS} weapons, {totals.turrets}/{MAX_TURRETS} turrets (vanilla maximums). New weapons fire from the turret's existing
+          muzzle point; a coaxial gun follows the turret's aim. The unit gets its own copy of the 3D depiction on export.
+        </p>
+      )}
 
       {swapSlot && (
         <AmmoPicker
@@ -310,6 +419,12 @@ export default function WeaponsEditor({ unit, base, set }) {
           onClose={() => setSwapSlot(null)}
           onPick={(ammoId, needsNewBox) => {
             const w = mounted.find((x) => x.slot === swapSlot);
+            if (w.added) {
+              patchAdded(w.added.id, { ammo: ammoId, fx: null });
+              if (needsNewBox) moveAdded(w.added.id, "new");
+              setSwapSlot(null);
+              return;
+            }
             update((x) => {
               // a different ammo has different base stats, so stat edits don't carry over
               const mo = { ...x.mounted?.[swapSlot], ammo: ammoId === w.original.ammo ? undefined : ammoId, stats: undefined };
@@ -324,6 +439,83 @@ export default function WeaponsEditor({ unit, base, set }) {
           }}
         />
       )}
+      {adding && (
+        <AmmoPicker
+          weapon={{ turretType: adding.coax ? "TwoAxis" : loadout.turrets[adding.turret].type, ammoId: null, ammo: null, override: {} }}
+          requirements={null}
+          canAddBox={canAddBox}
+          title={adding.coax ? `Add a coaxial gun to turret ${adding.turret + 1}` : `Add a weapon to turret ${adding.turret + 1}`}
+          onClose={() => setAdding(null)}
+          onPick={(ammoId) => {
+            addWeapon(adding.turret, adding.coax, ammoId);
+            setAdding(null);
+          }}
+        />
+      )}
+    </div>
+  );
+
+  function boxOptions(w) {
+    return salvos.map((_, box) => {
+      const req = boxRequirements(game, loadout, ov, w.slot, box);
+      return {
+        box,
+        users: usersOf(box).filter((x) => x.slot !== w.slot).map(nameOf),
+        fits: !w.ammo || fitsBox(w.ammo, req, w.stats),
+        requirement: req ? `${req.values.shotsPerSalvo} shot${req.values.shotsPerSalvo === 1 ? "" : "s"}/salvo` : null,
+      };
+    });
+  }
+}
+
+/** A weapon added in the builder (existing turret or coaxial). */
+function AddedWeapon({ weapon: w, name, base, boxes, canAddBox, inConflict, onSwap, onMove, onChange, onRemove }) {
+  const { game } = useProject();
+  const a = w.added;
+  const fx = a.fx || defaultFiringEffect(game, base, a.turret, a.ammo);
+  const iconUrl = vanillaWeaponUrl(game.weaponIcons[w.ammo?.icon]);
+  const maxRange = Math.max(w.stats.range || 0, w.stats.rangeHeli || 0, w.stats.rangeAir || 0);
+  return (
+    <div className={`mounted mounted-added ${inConflict ? "mounted-conflict" : ""}`}>
+      <div className="mounted-row">
+        {iconUrl && <img className="weapon-icon" src={iconUrl} alt="" />}
+        <div className="mounted-name">
+          <strong>{name}</strong>
+          <span className="tag-custom">{a.coax ? "coaxial" : "added"}</span>
+          <div className="muted small">
+            {ammoCategoryLabel(w.ammo?.category)} · {damageFamilyLabel(w.ammo?.family)} {w.stats.power} · {maxRange} GRU · {w.stats.shotsPerSalvo} shot
+            {w.stats.shotsPerSalvo === 1 ? "" : "s"}/salvo
+          </div>
+          <div className="mounted-box small">
+            <select className="box-select" value={a.box} onChange={(e) => onMove(e.target.value === "new" ? "new" : Number(e.target.value))} aria-label="Ammo box">
+              {boxes.map((b) => (
+                <option key={b.box} value={b.box} disabled={!b.fits && b.box !== a.box}>
+                  Box {b.box + 1}
+                  {b.users.length ? ` with ${[...new Set(b.users)].join(", ")}` : b.box === a.box ? " (only this weapon)" : " (empty)"}
+                  {!b.fits && b.box !== a.box ? ` (needs ${b.requirement})` : ""}
+                </option>
+              ))}
+              {canAddBox && <option value="new">+ New box</option>}
+            </select>
+            <select className="box-select" value={fx || ""} onChange={(e) => onChange({ fx: e.target.value })} aria-label="Firing effect">
+              {!fx && <option value="">Choose a firing effect…</option>}
+              {game.firingEffects.map((f) => (
+                <option key={f} value={f}>
+                  Fires like: {f.replace(/^Weapon_/, "").replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <label className="mounted-count" title="Number of these weapons (NbWeapons)">
+          ×
+          <input type="number" min={1} value={a.count} onChange={(e) => onChange({ count: Math.max(1, Math.round(Number(e.target.value))) })} />
+        </label>
+        <Button size="sm" onClick={onSwap}>Swap ammo</Button>
+        <button type="button" className="link small danger" onClick={onRemove}>
+          remove
+        </button>
+      </div>
     </div>
   );
 }
@@ -486,7 +678,7 @@ function impactLabel(key) {
   return key.replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
 }
 
-function AmmoPicker({ weapon, requirements, canAddBox, onPick, onClose }) {
+function AmmoPicker({ weapon, requirements, canAddBox, onPick, onClose, title }) {
   const { game } = useProject();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(weapon.ammo?.category || "");
@@ -508,13 +700,18 @@ function AmmoPicker({ weapon, requirements, canAddBox, onPick, onClose }) {
       if (!fits && (onlyFits || !canAddBox)) continue;
       list.push({ id, a, fits });
     }
-    list.sort((x, y) => Number(y.fits) - Number(x.fits) || (y.a.stats.power || 0) - (x.a.stats.power || 0));
+    // ammo whose display name matches the search beats ones matched only by internal id ("M240" vs a 240 mm howitzer)
+    const nameHit = (a) => words.length > 0 && words.every((w) => cleanGameText(a.name).toLowerCase().includes(w));
+    list.sort(
+      (x, y) =>
+        Number(y.fits) - Number(x.fits) || Number(nameHit(y.a)) - Number(nameHit(x.a)) || (y.a.stats.power || 0) - (x.a.stats.power || 0),
+    );
     return { rows: list, hiddenMount: hidden };
   }, [game, query, category, onlyFits, weapon, requirements, canAddBox]);
 
   const req = requirements?.values;
   return (
-    <Modal title={`Swap ammunition: ${turretLabel(weapon.turretType)}`} onClose={onClose} size="lg">
+    <Modal title={title || `Swap ammunition: ${turretLabel(weapon.turretType)}`} onClose={onClose} size="lg">
       <div className="picker-filters">
         <input className="input" autoFocus placeholder="Search, e.g. 120mm, tow, m2hb…" value={query} onChange={(e) => setQuery(e.target.value)} />
         <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>

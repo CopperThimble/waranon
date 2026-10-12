@@ -4,5 +4,4 @@
 export const flagModules = {};
 export const emblemModules = {};
 export const weaponModules = {};
-export const unitModules = {};
 export const portraitModules = {};

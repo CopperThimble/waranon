@@ -68,6 +68,21 @@ export function setNumberInObject(text, typeName, field, value) {
   return { text: text.slice(0, span.start) + patched + text.slice(span.end), ok: true };
 }
 
+/**
+ * Full-precision float, as vanilla writes angles (1.5707963267948966). Never round these: the engine
+ * checks limits like "AngleRotationMaxPitch <= 1.5708" against the exact value of pi/2, so a rounded
+ * 1.5708 is over the limit.
+ */
+export function formatExact(value) {
+  const s = String(Number(value));
+  return s.includes(".") || s.includes("e") ? s : `${s}.0`;
+}
+
+export function setExactByRegex(text, regex, value) {
+  if (!regex.test(text)) return { text, ok: false };
+  return { text: text.replace(regex, (_, pre) => pre + formatExact(value)), ok: true };
+}
+
 /** Replace the first numeric capture of `regex` (which must have groups: prefix, number). */
 export function setNumberByRegex(text, regex, value) {
   if (!regex.test(text)) return { text, ok: false };

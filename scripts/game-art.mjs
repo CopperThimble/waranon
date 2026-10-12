@@ -7,7 +7,8 @@
 // "off" sets "gameArt": false in waranon.config.json, untracks the art (git rm --cached) and
 // adds it to .gitignore. Nothing is committed: review with `git status`, then commit and push.
 // Pushing removes the art from the live site and the current branch, but NOT from git history.
-// images/unit-icons/ (the extracted portraits) is ignored separately and never added here.
+// images/unit-icons/ (the raw PNG extraction) is ignored separately and never added here;
+// images/portraits/ (the WebP copies the app uses) is part of the art switch.
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -18,7 +19,7 @@ const GITIGNORE = ".gitignore";
 const START = "# >>> game art switched off (npm run art -- on to restore)";
 const END = "# <<< game art";
 const ART_PATHS = [
-  "images/units",
+  "images/portraits",
   "images/flags",
   "images/divisions",
   "images/weapons",
@@ -68,7 +69,7 @@ if (cmd === "off") {
   setIgnored(false);
   if (existing().length) git("add", "--", ...existing());
   console.log(`Game art ON: shown in the app and ${tracked().length} files tracked again.`);
-  console.log("images/unit-icons/ stays ignored; remove its line in .gitignore if you decide to publish it.");
+  console.log("images/unit-icons/ (raw PNG extraction) stays ignored; the app uses images/portraits/.");
 } else if (cmd === "status") {
   status();
 } else {

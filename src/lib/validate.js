@@ -1,7 +1,23 @@
 import { EFFECTS_BY_KEY } from "./abilities.js";
-import { MAX_BOXES, boxConflicts, boxCount, effectiveMounted, emptyBoxes, mountProblem, normalizeWeapons, turretLabel } from "./weapons.js";
+import {
+  MAX_BOXES,
+  MAX_TURRETS,
+  MAX_WEAPONS,
+  boxConflicts,
+  boxCount,
+  defaultFiringEffect,
+  effectiveMounted,
+  emptyBoxes,
+  mountProblem,
+  normalizeWeapons,
+  turretAnchors,
+  turretLabel,
+  weaponTotals,
+} from "./weapons.js";
 import {
   AMMO_STATS,
+  isOnTick,
+  snapToTick,
   STATS,
   allAlliances,
   allNations,
@@ -163,7 +179,48 @@ function validateWeapons(u, base, label, game, err, warn) {
   for (const [ti, t] of Object.entries(ov.turrets || {})) {
     if (t.rotationSpeed != null && !(t.rotationSpeed > 0)) err("unit", u.id, `${label}: turret ${Number(ti) + 1} rotation speed must be above 0.`);
     if (t.traverse != null && !(t.traverse > 0 && t.traverse <= 360)) err("unit", u.id, `${label}: turret ${Number(ti) + 1} traverse must be 1–360°.`);
+    // Engine limits: pitch within ±90°, and the lowest aim can't be above the highest.
+    const base = loadout.turrets[ti];
+    const deg = (rad) => (rad * 180) / Math.PI;
+    const elevation = t.elevation ?? (base?.elevation != null ? deg(base.elevation) : null);
+    const depression = t.depression ?? (base?.depression != null ? -deg(base.depression) : null);
+    if (t.elevation != null && !(t.elevation >= 0 && t.elevation <= 90)) err("unit", u.id, `${label}: turret ${Number(ti) + 1} elevation must be 0–90°.`);
+    if (t.depression != null && !(t.depression >= -90 && t.depression <= 90)) err("unit", u.id, `${label}: turret ${Number(ti) + 1} depression must be between -90° and 90°.`);
+    if (elevation != null && depression != null && -depression > elevation + 1e-9)
+      err("unit", u.id, `${label}: turret ${Number(ti) + 1} lowest aim (${-depression}°) is above its highest (${elevation}°); lower the depression limit or raise elevation.`);
+    if (t.facing != null && !(t.facing >= -180 && t.facing <= 180)) err("unit", u.id, `${label}: turret ${Number(ti) + 1} facing must be between -180° and 180°.`);
   }
+  // Added weapons need a vehicle depiction to clone (for the muzzle flash / firing sound).
+  const withAdded = normalizeWeapons(loadout, ov);
+  for (const a of withAdded.added || []) {
+    const ammo = game.ammo[a.ammo];
+    const host = loadout.turrets[a.turret];
+    const where = `${label}: added ${a.coax ? "coaxial " : ""}weapon ${ammo?.name || a.ammo}`;
+    if (!base.blackHoleKey) {
+      err("unit", u.id, `${where}: adding weapons is only supported for ground vehicles so far.`);
+      continue;
+    }
+    if (!host) {
+      err("unit", u.id, `${where}: its turret no longer exists.`);
+      continue;
+    }
+    if (a.coax && host.type !== "TwoAxis") err("unit", u.id, `${where}: coaxial guns need a rotating turret.`);
+    if (a.coax && host.master != null) err("unit", u.id, `${where}: can't slave to a turret that is itself coaxial.`);
+    if (!ammo) err("unit", u.id, `${where}: ammunition not found in game data.`);
+    else {
+      const problem = mountProblem(a.coax ? "TwoAxis" : host.type, ammo.projectile);
+      if (problem) err("unit", u.id, `${where}: ${problem}.`);
+    }
+    if (!turretAnchors(game, base, a.turret).length)
+      err("unit", u.id, `${where}: turret ${a.turret + 1} has no muzzle point to fire from (missile launchers aren't supported yet).`);
+    const fx = a.fx || defaultFiringEffect(game, base, a.turret, a.ammo);
+    if (!fx || !game.firingEffects.includes(fx)) err("unit", u.id, `${where}: pick a firing effect.`);
+    if (!Number.isInteger(a.count) || a.count < 1) err("unit", u.id, `${where}: weapon count must be a whole number of at least 1.`);
+  }
+  const totals = weaponTotals(loadout, withAdded);
+  if (totals.weapons > MAX_WEAPONS) err("unit", u.id, `${label}: ${totals.weapons} weapons; vanilla never uses more than ${MAX_WEAPONS}.`);
+  if (totals.turrets > MAX_TURRETS) err("unit", u.id, `${label}: ${totals.turrets} turrets; vanilla never uses more than ${MAX_TURRETS}.`);
+
   // Engine rules: mount types and matching salvo shape within a shared ammo box.
   for (const w of effectiveMounted(game, loadout, ov)) {
     const problem = w.ammo && mountProblem(w.turretType, w.ammo.projectile);
@@ -211,6 +268,7 @@ function validateWeapons(u, base, label, game, err, warn) {
         continue;
       }
       if (!stat.decimals && !stat.power && !Number.isInteger(v)) err("unit", u.id, `${where}: ${stat.label} must be a whole number.`);
+      if (stat.tick && !isOnTick(v)) err("unit", u.id, `${where}: ${stat.label} ${v}s must be a multiple of the 0.1 s game tick (e.g. ${snapToTick(v).toFixed(1)}).`);
       if (v < (stat.hardMin ?? 0)) err("unit", u.id, `${where}: ${stat.label} can't be below ${stat.hardMin ?? 0}.`);
       if (stat.hardMax != null && v > stat.hardMax) err("unit", u.id, `${where}: ${stat.label} can't exceed ${stat.hardMax}.`);
       if (stat.power) {

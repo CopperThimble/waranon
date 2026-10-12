@@ -69,12 +69,12 @@ const traj = project({
 const out2 = await buildModFiles({ project: traj, game, source });
 const ammoFile = out2.files.find((f) => f.path.endsWith("/Ammunition.ndf"))?.data || "";
 const ammoBlock = /Ammo_Test_Mortar_RUR_T1W1 is[\s\S]*?\n\)/.exec(ammoFile)?.[0] || "";
-check(/PitchForParabolic\s*=\s*0\.7854/.test(ammoBlock), "launch angle 45° written as 0.7854 rad");
+check(/PitchForParabolic\s*=\s*0\.7853981633974483\b/.test(ammoBlock), "launch angle 45° written as exact radians");
 check(/ProjectileSpeedGRU\s*=\s*250\b/.test(ammoBlock), "projectile speed written");
 const wBlock = /export WeaponDescriptor_Test_Mortar_RUR[\s\S]*?\n\)/.exec(out2.files.find((f) => f.path.endsWith("WeaponDescriptor.ndf"))?.data || "")?.[0] || "";
-check(/AngleRotationBase = 3\.1416/.test(wBlock), "turret facing 180° -> AngleRotationBase 3.1416");
-check(/AngleRotationMaxPitch = 1\.2217/.test(wBlock), "elevation 70° -> 1.2217");
-check(/AngleRotationMinPitch = -0\.0873/.test(wBlock), "depression 5° -> -0.0873");
+check(/AngleRotationBase = 3\.141592653589793\b/.test(wBlock), "turret facing 180° -> exact pi");
+check(/AngleRotationMaxPitch = 1\.2217304763960306\b/.test(wBlock), "elevation 70° -> exact radians");
+check(/AngleRotationMinPitch = -0\.08726646259971647\b/.test(wBlock), "depression 5° -> exact radians");
 
 const p3 = newProject("squad");
 p3.nations.push({ ...newNation(), tag: "RUR", name: "Ruritania" });
@@ -103,6 +103,71 @@ const out5 = await buildModFiles({ project: look, game, source });
 const ammo5 = /Ammo_Test_Mortar_RUR_T1W1 is[\s\S]*?\n\)/.exec(out5.files.find((f) => f.path.endsWith("/Ammunition.ndf"))?.data || "")?.[0] || "";
 check(/ImpactHappening\s*=\s*'CanonGrosAPFDSM1Abrams'/.test(ammo5), "impact effect swapped on cloned ammo");
 check(/InterfaceWeaponTexture\s*=\s*"Texture_Interface_Weapon_M68_120"/.test(ammo5), "weapon icon swapped on cloned ammo");
+
+// 8. ammo timings must be whole 0.1 s game ticks
+const offTick = project({ weapons: { mounted: { "0.0": { stats: { shotInterval: 0.95 } } } } });
+check(errorsOf(offTick).some((m) => m.includes("multiple of the 0.1 s game tick")), "time between shots off the 0.1 s tick is an error");
+
+// 9. angle limits: 90° elevation must be exactly pi/2 (a rounded 1.5708 is over the engine's limit);
+//    360° traverse exactly 2*pi on rotating turrets, clamped to pi on fixed mounts
+function unitProject(unitId, name, weapons) {
+  const p = newProject("add");
+  p.nations.push({ ...newNation(), tag: "RUR", name: "Ruritania" });
+  const u = { ...newUnit(game.unitsById.get(unitId), "RUR"), name, weapons };
+  p.units.push(u);
+  const d = { ...newDivision("RUR"), name: "Test Div" };
+  d.costMatrix = structuredClone(Object.values(game.costMatrices)[0]);
+  d.roster = [{ ...defaultRuleFor(game, p, customRef(u.id)), noTransport: true }];
+  p.divisions.push(d);
+  return p;
+}
+const limits = unitProject("Descriptor_Unit_M1A1_Abrams_US", "Limit Tank", { turrets: { 0: { elevation: 90, traverse: 360 }, 4: { elevation: 90, traverse: 360 } } });
+const wl = /export WeaponDescriptor_Limit_Tank_RUR[\s\S]*?\n\)/.exec((await buildModFiles({ project: limits, game, source })).files.find((f) => f.path.endsWith("WeaponDescriptor.ndf"))?.data || "")?.[0] || "";
+const tl = wl.split(/\n {8}TTurret/).slice(1);
+check(/AngleRotationMaxPitch = 1\.5707963267948966\b/.test(tl[0]) && /AngleRotationMaxPitch = 1\.5707963267948966\b/.test(tl[4]), "90° elevation written as exact pi/2 (not 1.5708)");
+check(/AngleRotationMax = 6\.283185307179586\b/.test(tl[0]), "360° traverse on a rotating turret = exact 2*pi");
+check(/AngleRotationMax = 3\.141592653589793\b/.test(tl[4]), "360° traverse on a fixed mount clamped to pi");
+
+// 10. adding weapons: one on the AAVP-7's main turret and a coaxial gun slaved to it
+const AAV = "Descriptor_Unit_AAVP_7A1_USMC_US";
+const aavBase = game.unitsById.get(AAV);
+// vanilla slot numbers aren't contiguous (AAV-7: 1, 4, 5), so new weapons take max + 1, max + 2
+const aavMax = Math.max(...game.weapons[aavBase.weapon].turrets.flatMap((t) => t.mounted.map((m) => m.slot)));
+const [s1, s2] = [aavMax + 1, aavMax + 2];
+const aavAnchor = game.depictions[aavBase.blackHoleKey].slots[game.weapons[aavBase.weapon].turrets[0].mounted[0].slot].anchors[0];
+const addP = unitProject(AAV, "Gun Tank", {
+  extraBoxes: [400, 800],
+  added: [
+    { id: "a1", turret: 0, coax: false, ammo: "Ammo_HMG_12_7_mm_M2HB", count: 1, box: 3 },
+    { id: "a2", turret: 0, coax: true, ammo: "Ammo_MMG_M240_7_62mm", count: 2, box: 4 },
+  ],
+});
+check(errorsOf(addP).length === 0, `added weapon + coaxial gun are valid (${errorsOf(addP).join("; ") || "no errors"})`);
+const out6 = await buildModFiles({ project: addP, game, source });
+const file = (end) => out6.files.find((f) => f.path.endsWith(end))?.data || "";
+const w6 = /export WeaponDescriptor_Gun_Tank_RUR[\s\S]*?\n\)/.exec(file("WeaponDescriptor.ndf"))?.[0] || "";
+const turretsOut = w6.split(/\n {8}TTurret/).slice(1);
+check(turretsOut.length === 4, `coaxial turret appended (4 turrets, got ${turretsOut.length})`);
+check(new RegExp(String.raw`Ammo_HMG_12_7_mm_M2HB[\s\S]*WeaponActiveAndCanShoot_${s1}\b`).test(turretsOut[0]), `added HMG sits on the main turret as weapon slot ${s1}`);
+const masterBone = game.weapons[aavBase.weapon].turrets[0].bone;
+check(new RegExp(`MasterTurretYulBoneOrdinal = ${masterBone}\\b`).test(turretsOut[3]) && new RegExp(`YulBoneOrdinal = ${masterBone}\\b`).test(turretsOut[3]) && new RegExp(String.raw`WeaponShootData_0_${s2}\b`).test(turretsOut[3]), `coaxial turret slaved to the main turret's bone, slot ${s2}`);
+check(/Salves\s*=\s*\[[^\]]*400,\s*800,\s*\]/.test(w6), "two added ammo boxes appended");
+const u6 = /export Descriptor_Unit_Gun_Tank_RUR[\s\S]*?\n\)/.exec(file("UniteDescriptor.ndf"))?.[0] || "";
+check(/BlackHoleKey = "WR_Gun_Tank_RUR"/.test(u6), "unit points at its own depiction");
+const dv = file("DepictionVehicles.ndf");
+check(new RegExp(`DepictionOperator_WR_Gun_Tank_RUR_Weapon${s1} is DepictionOperator_WeaponContinuousFire[\\s\\S]*?${aavAnchor}`).test(dv), `fire operator for slot ${s1} uses the main turret's muzzle point`);
+check(new RegExp(String.raw`BlackHoleKey = 'WR_Gun_Tank_RUR'[\s\S]*"weapon_effet_tag${s1}", Weapon_HMG_12_7_mm_M2HB[\s\S]*"weapon_effet_tag${s2}", Weapon_MMG_M240_7_62mm`).test(dv), `cloned registration maps slots ${s1} and ${s2} to firing effects`);
+check(/BlackHoleKey = "WR_Gun_Tank_RUR"/.test(file("DepictionGhosts.ndf")), "placement ghost cloned");
+const reExport = await buildModFiles({ project: addP, game, source: { ...source, readText: async (rel) => out6.files.find((f) => f.path === rel)?.data ?? source.readText(rel) } });
+check(reExport.files.filter((f) => typeof f.data === "string").every((f) => f.data === out6.files.find((g) => g.path === f.path)?.data), "re-exporting added weapons is idempotent");
+
+// 11. limits and unsupported cases
+const tooManyWeapons = unitProject("Descriptor_Unit_M1A1_Abrams_US", "Full Tank", { added: [1, 2].map((i) => ({ id: `x${i}`, turret: 1, coax: false, ammo: "Ammo_HMG_12_7_mm_M2HB", count: 1, box: 1 })) });
+check(errorsOf(tooManyWeapons).some((m) => m.includes("never uses more than 6")), "more than 6 weapons is an error");
+const inf = newProject("inf");
+inf.nations.push({ ...newNation(), tag: "RUR", name: "Ruritania" });
+inf.units.push({ ...newUnit(game.unitsById.get("Descriptor_Unit_Rifles_US"), "RUR"), name: "Inf", weapons: { added: [{ id: "i", turret: 0, ammo: "Ammo_HMG_12_7_mm_M2HB", count: 1, box: 0 }] } });
+check(validateProject(inf, game).errors.some((e) => e.message.includes("only supported for ground vehicles")), "adding weapons to infantry is refused for now");
 
 console.log(failed ? `${failed} check(s) failed` : "all checks passed");
 process.exit(failed ? 1 : 0);

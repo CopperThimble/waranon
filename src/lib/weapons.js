@@ -15,6 +15,16 @@ export const BOX_MATCH_FIELDS = [
 ];
 
 export const MAX_BOXES = 5; // vanilla never exceeds 5; the unit panel may not show more
+export const MAX_TURRETS = 5; // vanilla maximum per loadout
+export const MAX_WEAPONS = 6; // vanilla maximum mounted weapons per loadout
+
+// Ammo fired as a stream (machine guns, autocannons) uses a continuous-fire depiction operator;
+// everything else (cannons, rockets, missiles, howitzers) fires single projectiles.
+const CONTINUOUS_CATEGORIES = new Set([
+  "MinMax_MMG_HMG", "MinMax_Gatling", "MinMax_AutocanonHE", "MinMax_DCA", "MinMax_Assault_rifle",
+  "MinMax_inf_MMG", "MinMax_SMG", "MinMax_FLAME",
+]);
+export const fireKind = (ammo) => (CONTINUOUS_CATEGORIES.has(ammo?.category) ? "ContinuousFire" : "InstantFire");
 
 const TURRET_LABELS = { TwoAxis: "rotating turret", Infanterie: "infantry weapon", Unit: "fixed mount", Bombardier: "bomb bay" };
 export const turretLabel = (type) => TURRET_LABELS[type] || type;
@@ -82,7 +92,53 @@ export function effectiveMounted(game, loadout, override = {}) {
       });
     }),
   );
+  // Weapons added in the builder: on an existing turret, or on a new coaxial turret slaved to it.
+  for (const a of ov.added || []) {
+    const ammo = game.ammo[a.ammo];
+    const host = loadout.turrets[a.turret];
+    out.push({
+      slot: `add:${a.id}`,
+      ti: a.turret,
+      mi: null,
+      added: a,
+      turretType: a.coax ? "TwoAxis" : host?.type,
+      original: { ammo: a.ammo, count: a.count, box: a.box, hidden: false },
+      override: {},
+      ammoId: a.ammo,
+      ammo,
+      stats: { ...(ammo?.stats || {}) },
+      box: a.box,
+    });
+  }
   return out;
+}
+
+/** Muzzle points (depiction anchors) usable for a new weapon on turret ti, or [] if none. */
+export function turretAnchors(game, base, ti) {
+  const slots = game.depictions?.[base.blackHoleKey]?.slots || {};
+  const turret = game.weapons[base.weapon]?.turrets[ti];
+  for (const m of turret?.mounted || []) {
+    const anchors = slots[m.slot]?.anchors;
+    if (anchors?.length) return anchors;
+  }
+  return [];
+}
+
+/** Firing effect (FX + sound) to use for new ammo: its own Weapon_* if the game has one. */
+export function defaultFiringEffect(game, base, ti, ammoId) {
+  const own = `Weapon_${String(ammoId).replace(/^Ammo_/, "")}`;
+  if (game.firingEffects?.includes(own)) return own;
+  const slots = game.depictions?.[base.blackHoleKey]?.slots || {};
+  const turret = game.weapons[base.weapon]?.turrets[ti];
+  return turret?.mounted.map((m) => slots[m.slot]?.fx).find(Boolean) || null;
+}
+
+export function weaponTotals(loadout, override) {
+  const added = override?.added || [];
+  return {
+    weapons: loadout.turrets.reduce((n, t) => n + t.mounted.length, 0) + added.length,
+    turrets: loadout.turrets.length + added.filter((a) => a.coax).length,
+  };
 }
 
 /** Boxes whose weapons disagree on a must-match field. */

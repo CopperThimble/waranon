@@ -6,7 +6,6 @@ const glob = (modules) => modules;
 export const flagModules = glob(import.meta.glob("/images/flags/*.png", { eager: true, import: "default", query: "?url" }));
 export const emblemModules = glob(import.meta.glob("/images/divisions/*.png", { eager: true, import: "default", query: "?url" }));
 export const weaponModules = glob(import.meta.glob("/images/weapons/*.png", { eager: true, import: "default", query: "?url" }));
-// Old portrait set, named after unit descriptors (Descriptor_Unit_X.png).
-export const unitModules = glob(import.meta.glob("/images/units/*.png", { eager: true, import: "default", query: "?url" }));
-// Portraits extracted from the game, laid out like GameData/Assets/2D/Interface/Common/UnitsIcons.
-export const portraitModules = glob(import.meta.glob("/images/unit-icons/*/*.png", { eager: true, import: "default", query: "?url" }));
+// Unit portraits extracted from the game and converted to WebP (scripts/convert_portraits.py),
+// laid out like GameData/Assets/2D/Interface/Common/UnitsIcons: images/portraits/NATO/M1A1_Abrams_US.webp
+export const portraitModules = glob(import.meta.glob("/images/portraits/*/*.webp", { eager: true, import: "default", query: "?url" }));

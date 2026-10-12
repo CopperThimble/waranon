@@ -11,8 +11,13 @@ import {
   slugify,
 } from "./model.js";
 import {
+  addWeaponsToBlock,
   cloneAmmoBlock,
+  cloneGhostRegistration,
+  cloneTacticRegistration,
   cloneUnitBlock,
+  fireOperator,
+  setUnitBlackHoleKey,
   patchWeaponBlock,
   serializeCapacity,
   serializeEffectPack,
@@ -33,7 +38,7 @@ import {
   wrapRegion,
 } from "./ndf.js";
 import { validateProject } from "./validate.js";
-import { boxPlan } from "./weapons.js";
+import { boxPlan, defaultFiringEffect, fireKind, normalizeWeapons, turretAnchors } from "./weapons.js";
 
 const G = "GameData/Generated";
 export const PATHS = {
@@ -50,6 +55,8 @@ export const PATHS = {
   divisionTextures: `${G}/UserInterface/Textures/DivisionTextures.ndf`,
   ammo: `${G}/Gameplay/Gfx/Ammunition.ndf`,
   ammoMissiles: `${G}/Gameplay/Gfx/AmmunitionMissiles.ndf`,
+  depVehicles: `${G}/Gameplay/Gfx/Depictions/DepictionVehicles.ndf`,
+  depGhosts: `${G}/Gameplay/Gfx/Depictions/DepictionGhosts.ndf`,
   effects: `${G}/Gameplay/Effects/EffetsSurUnite.ndf`,
   capacities: `${G}/Gameplay/Gfx/CapaciteList.ndf`,
   specialties: `${G}/UserInterface/UnitSpecialties.ndf`,
@@ -78,6 +85,8 @@ const CORE_FILES = [
   PATHS.capacities,
   PATHS.specialties,
   PATHS.specialtyTextures,
+  PATHS.depVehicles,
+  PATHS.depGhosts,
 ];
 
 // Dictionaries every generated token is written to. The game looks some tokens up in
@@ -324,10 +333,16 @@ export async function buildModFiles({ project, game, source }) {
     const weaponBlocks = [];
     const ammoBlocks = { [PATHS.ammo]: [], [PATHS.ammoMissiles]: [] };
     const ammoFile = (id) => (game.ammo[id]?.file === "AmmunitionMissiles" ? PATHS.ammoMissiles : PATHS.ammo);
+    const depictionJobs = []; // units with added weapons get their own copy of the vehicle depiction
     for (const r of resolvedUnits) {
       const span = findTopLevelBlock(unitsText, r.base.id);
       if (!span) throw new Error(`Base unit ${r.base.id} not found in your UniteDescriptor.ndf (different game version?)`);
-      unitBlocks.push(cloneUnitBlock(unitsText.slice(span.start, span.end), r, warnings, customNames));
+      const loadout = r.base.weapon && game.weapons[r.base.weapon];
+      const added = (loadout && normalizeWeapons(loadout, r.unit.weapons || {}).added) || [];
+      const depKey = added.length && r.base.blackHoleKey ? `WR_${r.stem}` : null;
+      let unitBlock = cloneUnitBlock(unitsText.slice(span.start, span.end), r, warnings, customNames);
+      if (depKey) unitBlock = setUnitBlackHoleKey(unitBlock, depKey);
+      unitBlocks.push(unitBlock);
 
       if (r.weapon) {
         const wText = working.get(PATHS.weapons).text;
@@ -339,8 +354,7 @@ export async function buildModFiles({ project, game, source }) {
         );
         const ov = r.unit.weapons || {};
         const fail = (what) => warnings.push({ scope: "unit", id: r.unit.id, message: `${r.unit.name}: couldn't apply ${what}.` });
-        weaponBlocks.push(
-          patchWeaponBlock(renamed, ov, (ti, mi, current) => {
+        let weaponBlock = patchWeaponBlock(renamed, ov, (ti, mi, current) => {
             const mo = ov.mounted?.[`${ti}.${mi}`];
             const src = mo?.ammo || current;
             const stats = mo?.stats && Object.keys(mo.stats).length ? mo.stats : null;
@@ -361,8 +375,15 @@ export async function buildModFiles({ project, game, source }) {
               ),
             );
             return cloneId;
-          }, fail, boxPlan(game.weapons[r.base.weapon], ov)),
-        );
+          }, fail, boxPlan(loadout, ov));
+        if (added.length) {
+          // new weapons take the slot numbers after the highest existing one
+          const maxSlot = Math.max(0, ...loadout.turrets.flatMap((t) => t.mounted.map((m) => m.slot || 0)));
+          const plan = added.map((a, i) => ({ a, n: maxSlot + i + 1 }));
+          weaponBlock = addWeaponsToBlock(weaponBlock, loadout, plan);
+          if (depKey) depictionJobs.push({ r, key: r.base.blackHoleKey, newKey: depKey, plan });
+        }
+        weaponBlocks.push(weaponBlock);
       }
       textRows.push({ token: r.unit.nameToken, text: r.unit.name });
     }
@@ -370,6 +391,33 @@ export async function buildModFiles({ project, game, source }) {
     if (weaponBlocks.length) await edit(PATHS.weapons, `${weaponBlocks.length} weapon loadout(s)`, (t) => appendBlocks(t, weaponBlocks));
     for (const [file, blocks] of Object.entries(ammoBlocks)) {
       if (blocks.length) await edit(file, `${blocks.length} customised ammunition type(s)`, (t) => appendBlocks(t, blocks));
+    }
+
+    if (depictionJobs.length) {
+      const dvText = working.get(PATHS.depVehicles).text;
+      const ghostText = working.get(PATHS.depGhosts).text;
+      const dvBlocks = [];
+      const ghostBlocks = [];
+      for (const j of depictionJobs) {
+        const operators = [];
+        const actions = [];
+        for (const { a, n } of j.plan) {
+          const anchors = turretAnchors(game, j.r.base, a.turret);
+          const fx = a.fx || defaultFiringEffect(game, j.r.base, a.turret, a.ammo);
+          const name = `DepictionOperator_${j.newKey}_Weapon${n}`;
+          dvBlocks.push(fireOperator(name, fireKind(game.ammo[a.ammo]), anchors, n));
+          operators.push(name);
+          if (fx) actions.push([n, fx]);
+        }
+        const registration = cloneTacticRegistration(dvText, j.key, j.newKey, operators, actions);
+        if (!registration) throw new Error(`Depiction ${j.key} not found in your DepictionVehicles.ndf (different game version?)`);
+        dvBlocks.push(registration);
+        const ghost = cloneGhostRegistration(ghostText, j.key, j.newKey);
+        if (ghost) ghostBlocks.push(ghost);
+        else warnings.push({ scope: "unit", id: j.r.unit.id, message: `${j.r.unit.name}: no placement ghost found for ${j.key}.` });
+      }
+      await edit(PATHS.depVehicles, `${depictionJobs.length} unit depiction(s) for added weapons`, (t) => appendBlocks(t, dvBlocks));
+      if (ghostBlocks.length) await edit(PATHS.depGhosts, `${ghostBlocks.length} placement ghost(s)`, (t) => appendBlocks(t, ghostBlocks));
     }
 
     const iconUnits = resolvedUnits.filter((r) => r.unit.iconAssetId);

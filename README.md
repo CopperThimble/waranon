@@ -34,7 +34,7 @@ npm run test:export   # end-to-end exporter check against SampleMods/modexample 
 npm run test:rules    # weapon loadout rules (shared ammo boxes, mount types)
 ```
 
-Unit portraits come from `images/unit-icons/{NATO,PACT}/`, which mirrors the game's `GameData/Assets/2D/Interface/Common/UnitsIcons/` layout; `portraits_manifest.json` there records where each one was extracted from. Each unit's `portrait` field in the catalog is resolved through its button texture in `ButtonTexturesUnites.ndf`. The older descriptor-named set in `images/units/` is only a fallback.
+Unit portraits live in `images/portraits/{NATO,PACT}/*.webp`, mirroring the game's `GameData/Assets/2D/Interface/Common/UnitsIcons/` layout. They are made from a local PNG extraction in `images/unit-icons/` (gitignored, with `portraits_manifest.json`) by `python scripts/convert_portraits.py` (needs `pip install pillow`; 396 MB of PNG becomes about 45 MB of WebP). Each unit's `portrait` field in the catalog is resolved through its button texture in `ButtonTexturesUnites.ndf`.
 
 Vanilla unit and weapon names come from `data/vanilla_localisation.csv`, which is from an older patch, so divisions added since then fall back to their config names.
 
@@ -54,6 +54,8 @@ scripts/        data extraction (Python), exporter test (Node)
 - Only **two sides** exist (`TWargameCoalition` is NATO=0 / PACT=1, mirrored from C++). Custom alliances fight on one of them.
 - Armor values are indices into fixed tables (`DamageResistance.ndf`); for example, heavy armor (`blindage`) has 30 levels. The unit editor enforces these.
 - Cloned units keep the base unit's `MimeticName`/model, so they reuse its 3D model, animations and depiction.
+- Weapons added in the builder (on an existing turret, or as a coaxial gun slaved to one) need a muzzle point and firing effect, so the unit gets its own copy of the vehicle depiction (`DepictionVehicles.ndf` + `DepictionGhosts.ndf`) under a new BlackHoleKey. Ground vehicles only for now; vanilla limits of 6 weapons, 5 turrets and 5 ammo boxes per unit are enforced.
+- Ammo shot intervals and aim times must be multiples of the 0.1 s game tick, and turret angles are written at full precision (the engine checks elevation against exact pi/2).
 
 ## Legal and game art
 

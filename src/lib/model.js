@@ -2,6 +2,11 @@
 
 export const SIDES = ["NATO", "PACT"];
 
+/** The simulation runs in 0.1 s ticks; some ammo timings must be whole multiples of it. */
+export const GAME_TICK = 0.1;
+export const snapToTick = (v) => Math.round(Number(v) / GAME_TICK) * GAME_TICK;
+export const isOnTick = (v) => Math.abs(snapToTick(v) - Number(v)) < 1e-6;
+
 export const BUILTIN_ALLIANCES = [
   { id: "NATO", name: "NATO", side: "NATO", color: "#3b82f6", builtin: true },
   { id: "PACT", name: "Warsaw Pact", side: "PACT", color: "#dc2626", builtin: true },
@@ -80,10 +85,10 @@ export const AMMO_STATS = [
   { key: "rangeAir", label: "Range vs planes", unit: "GRU", group: "Range", step: 25 },
   { key: "accuracy", label: "Accuracy (stationary)", unit: "%", group: "Handling", step: 1, hardMax: 100 },
   { key: "accuracyMoving", label: "Accuracy (moving)", unit: "%", group: "Handling", step: 1, hardMax: 100 },
-  { key: "aimTime", label: "Aim time", unit: "s", group: "Handling", step: 0.1, decimals: 1 },
+  { key: "aimTime", label: "Aim time", unit: "s", group: "Handling", step: 0.1, decimals: 1, tick: true },
   { key: "reload", label: "Reload (between salvos)", unit: "s", group: "Handling", step: 0.1, decimals: 1 },
   { key: "shotsPerSalvo", label: "Shots per salvo", group: "Handling", step: 1, hardMin: 1 },
-  { key: "shotInterval", label: "Time between shots", unit: "s", group: "Handling", step: 0.05, decimals: 2 },
+  { key: "shotInterval", label: "Time between shots", unit: "s", group: "Handling", step: 0.1, decimals: 1, hardMin: 0.1, tick: true, hint: "Must be a multiple of the 0.1 s game tick" },
   { key: "arcAngle", label: "Launch angle", unit: "°", group: "Trajectory", step: 1, hardMin: 5, hardMax: 85, hint: "Indirect fire: higher = steeper, slower arc" },
   { key: "projectileSpeed", label: "Projectile speed", unit: "GRU/s", group: "Trajectory", step: 25 },
   { key: "supplyCost", label: "Supply cost per salvo", group: "Handling", step: 1 },

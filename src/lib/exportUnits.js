@@ -2,7 +2,8 @@
 // applying stat / ability overrides, and serializing custom abilities.
 
 import { SF_XP_PACK, TARGET_PRESETS, VANILLA_ABILITIES, EFFECTS_BY_KEY, presetActive } from "./abilities.js";
-import { appendToList, escapeRegExp, findObjectSpan, matchClose, setNumberByRegex, setNumberInObject } from "./ndf.js";
+import { GAME_TICK, snapToTick } from "./model.js";
+import { appendToList, escapeRegExp, findObjectSpan, formatExact, matchClose, setExactByRegex, setNumberByRegex, setNumberInObject } from "./ndf.js";
 
 const NUM = "(-?\\d+(?:\\.\\d*)?)";
 const field = (name) => new RegExp(`(\\b${name}\\s*=\\s*)${NUM}`);
@@ -76,14 +77,15 @@ export const AMMO_PATCHERS = {
   rangeAir: (t, v) => setNumberByRegex(t, field("MaximumRangeAirplaneGRU"), v),
   accuracy: (t, v) => setNumberByRegex(t, /(EBaseHitValueModifier\/Idling\s*,\s*)(-?\d+(?:\.\d*)?)/, v),
   accuracyMoving: (t, v) => setNumberByRegex(t, /(EBaseHitValueModifier\/Moving\s*,\s*)(-?\d+(?:\.\d*)?)/, v),
-  aimTime: (t, v) => setNumberByRegex(t, field("AimingTime"), v),
+  // the engine rejects timings that aren't whole 0.1 s ticks ("must be multiple of a gameplay tick length")
+  aimTime: (t, v) => setNumberByRegex(t, field("AimingTime"), snapToTick(v)),
   reload: (t, v) => setNumberByRegex(t, field("TimeBetweenTwoSalvos"), v),
   shotsPerSalvo: (t, v) => setNumberByRegex(t, field("ShotsCountPerSalvo"), v),
-  shotInterval: (t, v) => setNumberByRegex(t, field("TimeBetweenTwoShots"), v),
+  shotInterval: (t, v) => setNumberByRegex(t, field("TimeBetweenTwoShots"), Math.max(GAME_TICK, snapToTick(v))),
   projectileSpeed: (t, v) => setNumberByRegex(t, field("ProjectileSpeedGRU"), v),
   supplyCost: (t, v) => setNumberByRegex(t, field("SupplyCost"), v),
   // degrees in the editor, radians in NDF
-  arcAngle: (t, v) => setNumberByRegex(t, field("PitchForParabolic"), (v * Math.PI) / 180),
+  arcAngle: (t, v) => setExactByRegex(t, field("PitchForParabolic"), (v * Math.PI) / 180),
 };
 
 function applyPatchers(text, patchers, values, baseValues, onFail) {
@@ -203,6 +205,18 @@ function objectSpans(text, typePattern, from = 0, to = text.length) {
 }
 
 const toRad = (deg) => (deg * Math.PI) / 180;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * Engine limits for turret angles (radians), matching the vanilla extremes. Values are written at
+ * full precision: the engine compares against exact pi/2, so a rounded 1.5708 fails the check.
+ */
+export const TURRET_ANGLE_LIMITS = {
+  facing: [-Math.PI, Math.PI],
+  elevation: [0, Math.PI / 2],
+  depression: [-Math.PI / 2, Math.PI / 2], // stored as AngleRotationMinPitch (negative = below horizon)
+  traverse: { TwoAxis: [toRad(1), 2 * Math.PI], default: [toRad(1), Math.PI] },
+};
 
 /**
  * Apply a unit's weapon overrides to its (already renamed) weapon block.
@@ -231,21 +245,24 @@ export function patchWeaponBlock(block, override, ammoFor, onFail, plan = { extr
   turrets.forEach((ts, ti) => {
     let tText = t.slice(ts.start, ts.end);
     const to = override?.turrets?.[ti];
+    const isTwoAxis = /^TTurretTwoAxisDescriptor/.test(tText);
     // tText is just this turret; mounted weapons inside it have no rotation fields
     if (to?.rotationSpeed != null) {
-      const r = setNumberByRegex(tText, field("VitesseRotation"), toRad(to.rotationSpeed));
+      const r = setExactByRegex(tText, field("VitesseRotation"), toRad(Math.max(1, to.rotationSpeed)));
       if (r.ok) tText = r.text;
       else onFail(`turret ${ti + 1} rotation speed`);
     }
     if (to?.traverse != null) {
-      const r = setNumberByRegex(tText, field("AngleRotationMax"), toRad(to.traverse));
+      const [lo, hi] = TURRET_ANGLE_LIMITS.traverse[isTwoAxis ? "TwoAxis" : "default"];
+      const r = setExactByRegex(tText, field("AngleRotationMax"), clamp(toRad(to.traverse), lo, hi));
       if (r.ok) tText = r.text;
       else onFail(`turret ${ti + 1} traverse`);
     }
     // facing: 0 = forward, 180 = rear. Elevation/depression are pitch limits (depression stored negative).
     for (const [key, fieldName, sign] of [["facing", "AngleRotationBase", 1], ["elevation", "AngleRotationMaxPitch", 1], ["depression", "AngleRotationMinPitch", -1]]) {
       if (to?.[key] == null) continue;
-      const r = setNumberByRegex(tText, field(fieldName), sign * toRad(to[key]));
+      const [lo, hi] = TURRET_ANGLE_LIMITS[key];
+      const r = setExactByRegex(tText, field(fieldName), clamp(sign * toRad(to[key]), sign > 0 ? lo : -hi, sign > 0 ? hi : -lo));
       if (r.ok) tText = r.text;
       else onFail(`turret ${ti + 1} ${key}`);
     }
@@ -371,4 +388,149 @@ export function serializeSpecialty(key, texture, titleToken, bodyToken) {
                 ShowAsFilterInShowroom = False
             )
         ),`;
+}
+
+// ── Added weapons & depiction cloning ────────────────────────────────────────
+//
+// A weapon slot N is wired in two places:
+//   loadout:   TMountedWeaponDescriptor with WeaponShootData_0_N / WeaponActiveAndCanShoot_N / …
+//   depiction: a fire operator (muzzle point "anchors") with FireEffectTag "weapon_effet_tagN",
+//              and an Actions entry "weapon_effet_tagN" -> Weapon_X (firing FX + sound).
+// Cloned units share the base unit's depiction, so adding a weapon copies the depiction
+// registration under a new BlackHoleKey and points the unit at it.
+
+const INDENT_MOUNTED = "                ";
+const TURRET_PATTERN = String.raw`TTurret\w+Descriptor`;
+
+/** A new mounted weapon, copied from a sibling on the same turret and renumbered to slot n. */
+function mountedFrom(template, a, n) {
+  const ammoTail = a.ammo.replace(/^Ammo_/, "");
+  return template
+    .replace(/(AmmoBoxIndex\s*=\s*)\d+/, `$1${a.box}`)
+    .replace(/(Ammunition\s*=\s*\$\/GFX\/Weapon\/)\w+/, `$1${a.ammo}`)
+    .replace(/(EffectTag\s*=\s*)"[^"]*"/, `$1"FireEffect_${ammoTail}"`)
+    .replace(/(HandheldEquipmentKey\s*=\s*)"[^"]*"/, `$1"WeaponAlternative_${n}"`)
+    .replace(/(NbWeapons\s*=\s*)\d+/, `$1${Math.max(1, Math.round(a.count || 1))}`)
+    .replace(/(WeaponActiveAndCanShootPropertyName\s*=\s*)"[^"]*"/, `$1"WeaponActiveAndCanShoot_${n}"`)
+    .replace(/(WeaponIgnoredPropertyName\s*=\s*)"[^"]*"/, `$1"WeaponIgnored_${n}"`)
+    .replace(/(WeaponShootDataPropertyName\s*=\s*)\[[\s\S]*?\]/, `$1[ "WeaponShootData_0_${n}" ]`)
+    .replace(/^[ \t]*HideInInterface\s*=\s*\w+[ \t]*\n/m, "");
+}
+
+/** A coaxial turret: slaved to its master and riding the master's bone (the model has no spare bones). */
+function coaxTurret(master, mounted) {
+  const f = formatExact;
+  const elevation = clamp(master.elevation ?? 0.5236, 0, Math.PI / 2);
+  const depression = clamp(master.depression ?? -0.1745, -Math.PI / 2, Math.PI / 2);
+  return `        TTurretTwoAxisDescriptor
+        (
+            AimingPriority = 3
+            AngleRotationBase = 0
+            AngleRotationBasePitch = 0
+            AngleRotationMax = 0.017453292519943295
+            AngleRotationMaxPitch = ${f(elevation)}
+            AngleRotationMinPitch = ${f(depression)}
+            MasterTurretYulBoneOrdinal = ${master.bone}
+            MountedWeaponDescriptorList =
+            [
+${INDENT_MOUNTED}${mounted},
+            ]
+            OutOfRangeTrackingDuration = 3.5
+            Tag = "${master.tag}"
+            VitesseRotation = ${f(master.rotationSpeed ?? 1.5708)}
+            YulBoneOrdinal = ${master.bone}
+        ),`;
+}
+
+/**
+ * Insert added weapons into a (renamed, patched) weapon block.
+ * added: [{ a, n }] — a = { turret, coax, ammo, count, box }, n = new slot number.
+ */
+export function addWeaponsToBlock(block, loadout, added) {
+  let t = block;
+  const onTurret = added.filter(({ a }) => !a.coax);
+  const turretIds = [...new Set(onTurret.map(({ a }) => a.turret))].sort((x, y) => y - x);
+  for (const ti of turretIds) {
+    const span = objectSpans(t, TURRET_PATTERN)[ti];
+    if (!span) throw new Error(`Turret ${ti + 1} not found in weapon descriptor`);
+    let tText = t.slice(span.start, span.end);
+    const tmplSpan = objectSpans(tText, "TMountedWeaponDescriptor")[0];
+    const tmpl = tText.slice(tmplSpan.start, tmplSpan.end);
+    for (const { a, n } of onTurret.filter((x) => x.a.turret === ti)) {
+      tText = appendToList(tText, /\bMountedWeaponDescriptorList\s*=/, `${INDENT_MOUNTED}${mountedFrom(tmpl, a, n)},`);
+    }
+    t = t.slice(0, span.start) + tText + t.slice(span.end);
+  }
+  for (const { a, n } of added.filter((x) => x.a.coax)) {
+    const span = objectSpans(t, TURRET_PATTERN)[a.turret];
+    const mSpan = objectSpans(t.slice(span.start, span.end), "TMountedWeaponDescriptor")[0];
+    const tmpl = t.slice(span.start + mSpan.start, span.start + mSpan.end);
+    t = appendToList(t, /\bTurretDescriptorList\s*=/, coaxTurret(loadout.turrets[a.turret], mountedFrom(tmpl, a, n)));
+  }
+  return t;
+}
+
+/** Span of the unnamed registration `typeName(...)` whose BlackHoleKey is `key`. */
+export function findRegistration(text, typeName, key) {
+  const keyRe = new RegExp(String.raw`BlackHoleKey\s*=\s*['"]` + escapeRegExp(key) + `['"]`);
+  const re = new RegExp(String.raw`unnamed\s+` + escapeRegExp(typeName) + String.raw`\s*\(`, "g");
+  let m;
+  while ((m = re.exec(text))) {
+    const open = m.index + m[0].length - 1;
+    const close = matchClose(text, open);
+    if (close < 0) break;
+    if (keyRe.test(text.slice(open, close))) return { start: m.index, end: close + 1 };
+    re.lastIndex = close;
+  }
+  return null;
+}
+
+/** Fire operator definition for a new weapon slot. */
+export function fireOperator(name, kind, anchors, n) {
+  const anchorList = `[${anchors.map((x) => `"${x}"`).join(", ")}]`;
+  if (kind === "ContinuousFire") {
+    return `${name} is DepictionOperator_WeaponContinuousFire
+(
+    FireEffectTag = "weapon_effet_tag${n}"
+    Anchors = ${anchorList}
+    WeaponShootDataPropertyName = "WeaponShootData_0_${n}"
+    WeaponActiveAndCanShootPropertyName = "WeaponActiveAndCanShoot_${n}"
+    NbFX = 1
+)`;
+  }
+  return `${name} is DepictionOperator_WeaponInstantFire
+(
+    FireEffectTag = "weapon_effet_tag${n}"
+    Anchors = ${anchorList}
+    WeaponShootDataPropertyName = ['WeaponShootData_0_${n}']
+    NbProj = 1
+)`;
+}
+
+/**
+ * Copy a vehicle's tactic registration under newKey, adding operators and Actions entries.
+ * Returns the new registration text (null if the base registration isn't found).
+ */
+export function cloneTacticRegistration(text, key, newKey, operatorNames, actions) {
+  const span = findRegistration(text, "TacticVehicleDepictionRegistration", key);
+  if (!span) return null;
+  let block = text.slice(span.start, span.end).replace(/(BlackHoleKey\s*=\s*)'[^']*'/, `$1'${newKey}'`);
+  if (operatorNames.length) block = appendToList(block, /\bOperators\s*=/, operatorNames.map((o) => `        ${o},`).join("\n"));
+  if (actions.length) {
+    block = appendToList(block, /\bActions\s*=\s*MAP/, actions.map(([n, fx]) => `                ( "weapon_effet_tag${n}", ${fx} ),`).join("\n"));
+  }
+  return block;
+}
+
+export function cloneGhostRegistration(text, key, newKey) {
+  const span = findRegistration(text, "GhostVehicleDepictionRegistration", key);
+  return span ? text.slice(span.start, span.end).replace(/(BlackHoleKey\s*=\s*)"[^"]*"/, `$1"${newKey}"`) : null;
+}
+
+/** Point a cloned unit at its own depiction. */
+export function setUnitBlackHoleKey(unitBlock, newKey) {
+  const span = findObjectSpan(unitBlock, "VehicleApparenceModuleDescriptor");
+  if (!span) return unitBlock;
+  const inner = unitBlock.slice(span.start, span.end).replace(/(BlackHoleKey\s*=\s*)"[^"]*"/, `$1"${newKey}"`);
+  return unitBlock.slice(0, span.start) + inner + unitBlock.slice(span.end);
 }

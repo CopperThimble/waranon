@@ -7,7 +7,7 @@ import { useProject } from "../state/useProject";
 
 const PAGE = 240;
 
-/** Browse every unit portrait extracted from the game (images/unit-icons). */
+/** Browse every unit portrait extracted from the game (images/portraits). */
 export default function GalleryPage() {
   const { game } = useProject();
   const [query, setQuery] = useState("");
@@ -56,8 +56,9 @@ export default function GalleryPage() {
       <div className="page">
         <PageHeader title="Gallery" />
         {gameArtEnabled ? (
-          <Empty icon="▦" title="No extracted portraits found">
-            Put the extracted unit icons in <code>images/unit-icons/NATO</code> and <code>images/unit-icons/PACT</code> and restart the dev server.
+          <Empty icon="▦" title="No portraits found">
+            Put extracted unit icons in <code>images/unit-icons/NATO</code> and <code>images/unit-icons/PACT</code>, run{" "}
+            <code>python scripts/convert_portraits.py</code>, and restart the dev server.
           </Empty>
         ) : (
           <Empty icon="▦" title="Game art is switched off">
@@ -72,7 +73,7 @@ export default function GalleryPage() {
     <div className="page">
       <PageHeader
         title="Gallery"
-        subtitle={`${items.length.toLocaleString()} unit portraits extracted from the game (${(items.length - unused).toLocaleString()} used by current units, ${unused} unused). Local only: this folder isn't uploaded.`}
+        subtitle={`${items.length.toLocaleString()} unit portraits extracted from the game (${(items.length - unused).toLocaleString()} used by current units, ${unused} unused).`}
       />
       <div className="gallery-filters">
         <input
