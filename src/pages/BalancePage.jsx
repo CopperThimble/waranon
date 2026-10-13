@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { UnitHover } from "../components/UnitCard";
 import { Empty, PageHeader } from "../components/ui";
 import { DlcBadge, NationFlag, SpecIcon } from "../components/visuals";
-import { ROLE_NAMES, VERDICT_LABELS, assessUnit, categoryDrivers } from "../lib/costModel";
+import { VERDICT_LABELS, assessUnit, categoryDrivers } from "../lib/costModel";
+import { ROLE_LABELS } from "../lib/labels";
 import { CATEGORIES, customRef, resolveUnitRef, titleCase } from "../lib/model";
 import { useCostModel } from "../state/useCostModel";
 import { useProject } from "../state/useProject";
@@ -111,11 +112,11 @@ export default function BalancePage({ navigate }) {
               <div className="card" key={cat}>
                 <h3>
                   {categoryLabel(cat)}
-                  {typeRole && ` · ${ROLE_NAMES[typeRole]}`}
+                  {typeRole && ` · ${ROLE_LABELS[typeRole]}`}
                 </h3>
                 <div className="muted small">
                   {typeRole ? m.types[typeRole].n : m.n} units · typical miss {pct(typeRole ? m.types[typeRole].cv.medianPctError : m.combinedCv.medianPctError)}
-                  {!typeRole && Object.keys(m.types).length > 0 && ` · own models for ${Object.keys(m.types).map((r) => ROLE_NAMES[r] || r).join(", ")}`}
+                  {!typeRole && Object.keys(m.types).length > 0 && ` · own models for ${Object.keys(m.types).map((r) => ROLE_LABELS[r] || r).join(", ")}`}
                 </div>
                 <ul>
                   {categoryDrivers(model, cat, shownCategory ? 8 : 4, typeRole).map((d) => (
@@ -166,7 +167,7 @@ export default function BalancePage({ navigate }) {
           <option value="">All types</option>
           {roles.map((r) => (
             <option key={r} value={r}>
-              {ROLE_NAMES[r] || r}
+              {ROLE_LABELS[r] || r}
             </option>
           ))}
         </select>
@@ -228,7 +229,7 @@ export default function BalancePage({ navigate }) {
                   <span className="muted small">{r.country}</span>
                 </td>
                 <td className="muted small">
-                  <SpecIcon spec={r.base.role} size={14} /> {categoryLabel(r.base.factory)} · {ROLE_NAMES[r.base.role] || r.base.role}
+                  <SpecIcon spec={r.base.role} size={14} /> {categoryLabel(r.base.factory)} · {ROLE_LABELS[r.base.role] || r.base.role}
                 </td>
                 <td className="num">{r.a.actual}</td>
                 <td className="num">{r.a.suggested}</td>

@@ -140,25 +140,39 @@ export async function renderClip(source, edit) {
   const out = bakedChain(ctx, src, edit, duration);
   const gain = ctx.createGain();
   out.connect(gain).connect(ctx.destination);
+  for (const [t, v, ramp] of gainEnvelope(duration, edit)) {
+    if (ramp) gain.gain.linearRampToValueAtTime(v, t);
+    else gain.gain.setValueAtTime(v, t);
+  }
+  src.start(0, edit.start, span);
+  const rendered = await ctx.startRendering();
+  if (edit.normalize) normalizePeak(rendered.getChannelData(0));
+  return rendered;
+}
+
+/**
+ * Volume over time for a clip of `duration` seconds: [time, gain, ramp?] points (ramp = slide to it).
+ * Fades are capped at half the clip each, so a short clip still fades in and out fully.
+ */
+export function gainEnvelope(duration, edit) {
   const g = 10 ** ((edit.gainDb || 0) / 20);
   const fi = Math.min(edit.fadeIn || 0, duration / 2);
   const fo = Math.min(edit.fadeOut || 0, duration / 2);
-  gain.gain.setValueAtTime(fi > 0 ? 0 : g, 0);
-  if (fi > 0) gain.gain.linearRampToValueAtTime(g, fi);
-  gain.gain.setValueAtTime(g, Math.max(fi, duration - fo));
-  if (fo > 0) gain.gain.linearRampToValueAtTime(0, duration);
-  src.start(0, edit.start, span);
-  const rendered = await ctx.startRendering();
-  if (edit.normalize) {
-    const d = rendered.getChannelData(0);
-    let peak = 0;
-    for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
-    if (peak > 0.0001) {
-      const k = 0.89 / peak; // about -1 dBFS
-      for (let i = 0; i < d.length; i++) d[i] *= k;
-    }
-  }
-  return rendered;
+  const points = [[0, fi > 0 ? 0 : g, false]];
+  if (fi > 0) points.push([fi, g, true]);
+  points.push([Math.max(fi, duration - fo), g, false]);
+  if (fo > 0) points.push([duration, 0, true]);
+  return points;
+}
+
+/** Scale samples in place so the loudest is about -1 dBFS (0.89). Silence is left alone. */
+export function normalizePeak(data, target = 0.89) {
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]));
+  if (peak <= 0.0001) return data;
+  const k = target / peak;
+  for (let i = 0; i < data.length; i++) data[i] *= k;
+  return data;
 }
 
 /** Approximation of the in-game radio filters, for previewing only (the game applies its own). */

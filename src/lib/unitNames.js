@@ -51,7 +51,6 @@ export function parseNameList(text = "") {
  * Dictionary token for a nation's custom pool. The engine caps TLocalisationToken at 10 characters
  * (vanilla: "NAMES_USSR"), so "WRN_" + a tag of up to 6.
  */
-export const MAX_DICO_TOKEN = 10;
 export const namesDicoToken = (tag) => `WRN_${tag}`;
 
 /** The pool CSV: "TOKEN";"REFTEXT" header, then "1";"Name" … like vanilla (CRLF). */

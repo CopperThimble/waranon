@@ -12,13 +12,16 @@ const check = (ok, msg) => {
 const disk = new Map([
   ["GameData/Generated/Gameplay/Gfx/UniteDescriptor.ndf", new Blob(["original units\r\n"])],
   ["GameData/Assets/2D/Interface/Common/Flags/RUR_FLAG.png", new Blob([new Uint8Array([137, 80, 78, 71, 0, 255, 1])])],
+  ["GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_OLD.ndf", new Blob(["stale names from an earlier export"])],
 ]);
 const before = new Map(disk);
 const source = {
   canWrite: true,
   readBlob: async (p) => disk.get(p) || null,
   writeFile: async (p, data) => disk.set(p, data instanceof Blob ? data : new Blob([data])),
+  deleteFile: async (p) => disk.delete(p),
 };
+const STALE = "GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_OLD.ndf";
 const bytes = async (blob) => Buffer.from(await blob.arrayBuffer()).toString("hex");
 
 const files = [
@@ -26,10 +29,11 @@ const files = [
   { path: "GameData/Assets/2D/Interface/Common/Flags/RUR_FLAG.png", data: new Blob([new Uint8Array([1, 2, 3])]) },
   { path: "GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_RUR.ndf", data: "new file" },
 ];
-const res = await writeWithBackup(source, files, { stamp: "2026-10-12T10-00-00" });
+const res = await writeWithBackup(source, files, { stamp: "2026-10-12T10-00-00", remove: [STALE, "GameData/never/existed.ndf"] });
 
 check(res.backupDir === `${BACKUP_ROOT}/2026-10-12T10-00-00`, `backup folder ${res.backupDir}`);
-check(res.backedUp.length === 2 && res.created.length === 1, "2 originals backed up, 1 new file recorded as created");
+check(res.backedUp.length === 3 && res.created.length === 1, "2 originals + 1 stale file backed up, 1 new file recorded as created");
+check(!disk.has(STALE) && res.removed.length === 1 && res.removed[0] === STALE, "stale file from an earlier export deleted (missing ones ignored)");
 for (const p of res.backedUp) {
   check((await bytes(disk.get(`${res.backupDir}/${p}`))) === (await bytes(before.get(p))), `backup of ${p.split("/").pop()} is byte-identical (text and binary)`);
 }
@@ -37,7 +41,7 @@ check((await disk.get(files[0].path).text()) === "patched units\r\n", "export wr
 const readme = await disk.get(`${res.backupDir}/README.txt`).text();
 check(readme.includes("To undo") && readme.includes("UnitNames_RUR.ndf"), "README explains the undo and lists the created file");
 
-// Undo: copy the backup back and delete created files -> folder is exactly as before
+// Undo: copy the backup back (restores the deleted stale file too) and delete created files -> folder is exactly as before
 for (const p of res.backedUp) disk.set(p, disk.get(`${res.backupDir}/${p}`));
 for (const p of res.created) disk.delete(p);
 let same = true;

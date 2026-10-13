@@ -2,7 +2,8 @@
 //   npm run model
 // Re-run after `npm run data` (a game update changes prices and stats).
 import fs from "node:fs";
-import { ROLE_NAMES, assessUnit, categoryDrivers, trainCostModel, unitFeatures } from "../src/lib/costModel.js";
+import { assessUnit, categoryDrivers, trainCostModel, unitFeatures } from "../src/lib/costModel.js";
+import { ROLE_LABELS } from "../src/lib/labels.js";
 import { indexGameData } from "../src/lib/gameData.js";
 
 const game = indexGameData(JSON.parse(fs.readFileSync("public/data/game-data.json", "utf8")));
@@ -20,14 +21,14 @@ console.log("model                                 units  held-out error   R² (
 for (const [cat, m] of Object.entries(categories).sort((a, b) => b[1].n - a[1].n)) {
   console.log(`${cat.padEnd(37)} ${String(m.n).padStart(5)}   ${pct(m.cv)} → ${pct(m.combinedCv)}   ${m.cv.r2Log.toFixed(2)} → ${m.combinedCv.r2Log.toFixed(2)}`);
   for (const [role, t] of Object.entries(m.types).sort((a, b) => b[1].n - a[1].n)) {
-    const name = `  · ${ROLE_NAMES[role] || role}`;
+    const name = `  · ${ROLE_LABELS[role] || role}`;
     console.log(`${name.padEnd(37)} ${String(t.n).padStart(5)}   ${pct(t.categoryCv)} → ${pct(t.cv)}   ${t.categoryCv.r2Log.toFixed(2)} → ${t.cv.r2Log.toFixed(2)}`);
   }
 }
 console.log("(category model alone → with per-type models)");
 
 for (const [cat, role] of [["Tanks", "armor"], ["Infantry", "hq_inf"], ["Infantry", "AT"], ["Planes", null]]) {
-  console.log(`\n${cat}${role ? ` · ${ROLE_NAMES[role]}` : ""}: biggest price drivers (effect of +1 std dev)`);
+  console.log(`\n${cat}${role ? ` · ${ROLE_LABELS[role]}` : ""}: biggest price drivers (effect of +1 std dev)`);
   for (const d of categoryDrivers(model, cat, 8, role)) console.log(`  ${d.pct > 0 ? "+" : ""}${d.pct}%  ${d.label}`);
   const scored = game.units
     .filter((u) => u.factory === cat && (!role || u.role === role) && !u.building && u.stats.cp > 0)

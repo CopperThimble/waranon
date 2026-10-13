@@ -30,6 +30,9 @@ const TURRET_LABELS = { TwoAxis: "rotating turret", Infanterie: "infantry weapon
 export const turretLabel = (type) => TURRET_LABELS[type] || type;
 
 /** Can ammunition with this projectile type be fired from this turret type? */
+/** Smoke, flares, self-defence and death "ammo": not real weapons for pricing or the unit card. */
+export const isUtilityAmmo = (id) => /SMOKE|AutoDefense|Flare|_Mort_/i.test(id || "");
+
 export function mountProblem(turretType, projectile) {
   if (turretType === "Bombardier" && projectile !== "Bombe") return "bomb bays can only drop bombs";
   if (projectile === "Bombe" && turretType !== "Bombardier") return "bombs need a bomb bay";
@@ -142,17 +145,6 @@ export function turretFireSource(game, base, ti) {
     if (s?.carriage) return { carriage: s.carriage, weaponIndex: s.weaponIndex };
   }
   return null;
-}
-
-/** Muzzle points (depiction anchors) usable for a new weapon on turret ti, or [] if none. */
-export function turretAnchors(game, base, ti) {
-  const slots = game.depictions?.[base.blackHoleKey]?.slots || {};
-  const turret = game.weapons[base.weapon]?.turrets[ti];
-  for (const m of turret?.mounted || []) {
-    const anchors = slots[m.slot]?.anchors;
-    if (anchors?.length) return anchors;
-  }
-  return [];
 }
 
 /** Firing effect (FX + sound) to use for new ammo: its own Weapon_* if the game has one. */

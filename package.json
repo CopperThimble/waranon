@@ -15,7 +15,8 @@
     "test:rules": "node scripts/test-weapon-rules.mjs SampleMods/modexample",
     "art": "node scripts/game-art.mjs",
     "test:write": "node scripts/test-write-backup.mjs",
-    "test:model": "node scripts/test-cost-model.mjs"
+    "test:model": "node scripts/test-cost-model.mjs",
+    "test:audio": "node scripts/test-audio.mjs"
   },
   "dependencies": {
     "jszip": "^3.10.1",

@@ -168,4 +168,18 @@ for (const f of second.files) {
   }
 }
 console.log(same ? "idempotent: OK" : "idempotent: FAILED");
+
+// cleanup of standalone files from earlier exports: the manifest lists what we created; anything
+// listed but no longer produced (here: a nation renamed away from OLD) is reported as stale
+const manifest = first.files.find((f) => f.path === "waranon-files.json");
+const listed = JSON.parse(manifest?.data || "{}").files || [];
+const withOld = JSON.stringify({ files: [...listed, "GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_OLD.ndf"] });
+const third = await buildModFiles({ project, game, source: { ...fsSource(outDir, modRoot), readText: async (rel) => (rel === "waranon-files.json" ? withOld : fsSource(outDir, modRoot).readText(rel)) } });
+const staleOk =
+  listed.includes("GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_RUR.ndf") &&
+  !listed.some((p) => p.endsWith("UniteDescriptor.ndf")) &&
+  (second.stale || []).length === 0 &&
+  JSON.stringify(third.stale) === JSON.stringify(["GameData/Generated/Gameplay/Gfx/UnitNames/UnitNames_OLD.ndf"]);
+console.log(staleOk ? "stale files: OK" : `stale files: FAILED (${JSON.stringify({ second: second.stale, third: third.stale })})`);
+if (!staleOk) same = false;
 process.exit(same ? 0 : 1);

@@ -36,6 +36,7 @@ npm run test:export   # end-to-end exporter check against SampleMods/modexample 
 npm run test:rules    # weapon loadout rules (shared ammo boxes, mount types)
 npm run model         # scripts/build_cost_model.mjs -> public/data/cost-model.json (points model; rerun after `npm run data`)
 npm run test:model    # points model sanity checks
+npm run test:audio    # voice studio audio math (silence trim, fades, normalising)
 ```
 
 ### Points model
@@ -90,6 +91,9 @@ npm run art -- on    # restore both
 With art off, the build contains no game images (pictures fall back to placeholders). CI can force it with `WARANON_GAME_ART=off`. Untracking removes the art from the branch and the deployed site once pushed, but not from git history. `images/unit-icons/` (locally extracted portraits) is gitignored separately and is never published by these commands.
 
 ## Privacy, backups and analytics
+
+Each export also writes `waranon-files.json` at the mod root: the standalone files Waranon created (name lists, flags, icons, voice clips). The next export compares it with what it writes now; files no longer produced (a renamed nation, a deleted clip) are backed up and deleted by "Write into folder", or listed for you to delete when using the .zip.
+
 
 - Projects are stored only in the visitor's browser (IndexedDB); mod files are read and written locally. Nothing is uploaded, and there are no cookies or tracking.
 - "Write into folder" (Chrome/Edge) asks the browser for permission, which lasts only while the tab is open. Before overwriting anything, it backs up the original files to `waranon-backups/<date-time>/` inside the mod folder, with a README explaining how to undo. "Download .zip" is the default.
