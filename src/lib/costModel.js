@@ -7,23 +7,15 @@
 // stat edits, swapped/added weapons and abilities — are scored exactly like vanilla ones.
 
 import { VANILLA_ABILITIES, presetActive } from "./abilities.js";
-import { boxSalvos, effectiveMounted, normalizeWeapons } from "./weapons.js";
+import { ROLE_LABELS } from "./labels.js";
+import { boxSalvos, effectiveMounted, isUtilityAmmo, normalizeWeapons } from "./weapons.js";
 
 const AT_FAMILIES = new Set(["DamageFamily_ap", "DamageFamily_ap_missile", "DamageFamily_roquette_ap"]);
 const ROLES = ["reco", "appui", "infantry", "AA", "transport", "AT", "armor", "supply", "hq_inf", "howitzer", "hq_veh", "mortar", "hq_tank", "engineer", "ifv", "mlrs", "sead", "hq_helo", "uav"];
 const TRAITS = ["_smoke_launcher", "_amphibie", "_para", "_transport1", "_transport2", "_ifv", "_leader", "_canBeAirlifted", "_airlift", "_mountaineer", "_falseflag"];
 const ABILITY_FEATURES = VANILLA_ABILITIES.map((p) => p.id);
 
-/** Readable names for unit types (the game's role ids). */
-export const ROLE_NAMES = {
-  reco: "recon", appui: "fire support", infantry: "line infantry", AA: "anti-air", transport: "transport",
-  AT: "anti-tank", armor: "main battle tank", supply: "supply", hq_inf: "command (infantry)",
-  howitzer: "howitzer", hq_veh: "command (vehicle)", mortar: "mortar", hq_tank: "command (tank)",
-  engineer: "engineer", ifv: "IFV", mlrs: "rocket artillery", sead: "SEAD", hq_helo: "command (helo)", uav: "drone",
-};
-
 const log1p = (x) => Math.log1p(Math.max(0, x || 0));
-const isUtilityAmmo = (id) => /SMOKE|AutoDefense|Flare|_Mort_/i.test(id);
 
 /** Human labels for explanations. */
 export const FEATURE_LABELS = {
@@ -56,7 +48,7 @@ export const FEATURE_LABELS = {
   weapons: "Number of weapons",
   ammo: "Ammunition carried",
   transport: "Can carry infantry",
-  ...Object.fromEntries(ROLES.map((r) => [`role:${r}`, `Type: ${ROLE_NAMES[r] || r}`])),
+  ...Object.fromEntries(ROLES.map((r) => [`role:${r}`, `Type: ${(ROLE_LABELS[r] || r).toLowerCase()}`])),
   ...Object.fromEntries(TRAITS.map((t) => [`trait:${t}`, `Trait: ${t.replace(/^_/, "").replace(/_/g, " ")}`])),
   ...Object.fromEntries(VANILLA_ABILITIES.map((p) => [`ability:${p.id}`, `Ability: ${p.label}`])),
 };
@@ -66,6 +58,17 @@ export const FEATURE_LABELS = {
  * Returns { name: number }.
  */
 export function unitFeatures(game, base, unit = null) {
+  if (unit) return computeFeatures(game, base, unit);
+  // vanilla units never change: compute each once per catalog (similarUnits scans whole categories)
+  if (!vanillaCache.has(game)) vanillaCache.set(game, new Map());
+  const cache = vanillaCache.get(game);
+  if (!cache.has(base.id)) cache.set(base.id, computeFeatures(game, base, null));
+  return cache.get(base.id);
+}
+
+const vanillaCache = new WeakMap();
+
+function computeFeatures(game, base, unit) {
   const stats = { ...base.stats, ...(unit?.stats || {}) };
   const f = {};
   f.health = stats.health || 0;
@@ -287,7 +290,7 @@ export function modelFor(model, base) {
   const cat = model?.categories?.[base.factory];
   if (!cat) return null;
   const typed = cat.types?.[base.role];
-  const roleName = ROLE_NAMES[base.role] || base.role;
+  const roleName = (ROLE_LABELS[base.role] || base.role).toLowerCase();
   return {
     m: typed || cat,
     category: base.factory,

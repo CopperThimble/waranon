@@ -1,9 +1,8 @@
 // Data for the in-game style unit card (components/UnitCard.jsx).
 
-import { boxSalvos, effectiveMounted, normalizeWeapons } from "./weapons.js";
+import { boxSalvos, effectiveMounted, isUtilityAmmo, normalizeWeapons } from "./weapons.js";
 
 const AP_FAMILIES = new Set(["DamageFamily_ap", "DamageFamily_ap_missile", "DamageFamily_roquette_ap"]);
-const isUtility = (id) => /SMOKE|AutoDefense|Flare|_Mort_/i.test(id || "");
 const r1 = (x) => Math.round((x || 0) * 10) / 10;
 
 /** Trait icons (images/traits) like the little symbols above each weapon in game. */
@@ -33,7 +32,7 @@ export function cardWeapons(game, base, unit = null) {
   const salvos = boxSalvos(loadout, ov);
   const cols = new Map();
   for (const w of effectiveMounted(game, loadout, ov)) {
-    if (!w.ammo || w.original?.hidden || isUtility(w.ammoId)) continue;
+    if (!w.ammo || w.original?.hidden || isUtilityAmmo(w.ammoId)) continue;
     const s = w.stats;
     const count = w.added ? w.added.count || 1 : w.override?.count ?? w.original?.count ?? 1;
     const perSalvo = s.shotsPerSalvo || 1;
@@ -80,7 +79,9 @@ const scales = new WeakMap();
 export function statScale(game) {
   let s = scales.get(game);
   if (s) return s;
-  const all = Object.values(game.ammo).filter((a) => a.stats && !isUtility(a.name));
+  const all = Object.entries(game.ammo)
+    .filter(([id, a]) => a.stats && !isUtilityAmmo(id))
+    .map(([, a]) => a);
   const p97 = (get) => {
     const v = all.map(get).filter((x) => x > 0).sort((a, b) => a - b);
     return v.length ? v[Math.floor(v.length * 0.97)] : 1;

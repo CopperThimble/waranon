@@ -51,6 +51,15 @@ export async function pickModFolder() {
     async requestWrite() {
       return (await root.requestPermission({ mode: "readwrite" })) === "granted";
     },
+    async deleteFile(path) {
+      const parts = path.split("/");
+      const name = parts.pop();
+      try {
+        await (await dirHandle(parts)).removeEntry(name);
+      } catch {
+        /* already gone */
+      }
+    },
     async writeFile(path, data) {
       const h = await fileHandle(path, true);
       const w = await h.createWritable();
@@ -117,11 +126,20 @@ export const BACKUP_ROOT = "waranon-backups";
  * waranon-backups/<stamp>/<same path> first, plus a README explaining how to undo.
  * Returns { backupDir, backedUp: [paths], created: [paths] }.
  */
-export async function writeWithBackup(source, files, { stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19), onProgress } = {}) {
+export async function writeWithBackup(source, files, { stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19), onProgress, remove = [] } = {}) {
   const backupDir = `${BACKUP_ROOT}/${stamp}`;
   const backedUp = [];
   const created = [];
+  const removed = [];
   onProgress?.("Backing up the files that will change…");
+  // stale files from earlier exports: backed up like any other change, then deleted
+  for (const path of remove) {
+    const original = await source.readBlob(path);
+    if (!original) continue;
+    await source.writeFile(`${backupDir}/${path}`, original);
+    backedUp.push(path);
+    removed.push(path);
+  }
   for (const f of files) {
     const original = await source.readBlob(f.path);
     if (original) {
@@ -134,7 +152,8 @@ export async function writeWithBackup(source, files, { stamp = new Date().toISOS
   await source.writeFile(`${backupDir}/README.txt`, backupReadme(stamp, backedUp, created));
   onProgress?.("Writing files…");
   for (const f of files) await source.writeFile(f.path, f.data);
-  return { backupDir, backedUp, created };
+  for (const path of removed) await source.deleteFile(path);
+  return { backupDir, backedUp, created, removed };
 }
 
 function backupReadme(stamp, backedUp, created) {

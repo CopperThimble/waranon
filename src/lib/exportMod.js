@@ -599,7 +599,32 @@ ${standout.map((u) => `        $/GFX/Unit/${u},`).join("\n")}
     files.push({ path, data, kind: "modified", notes: w.notes.length ? w.notes : ["Removed previous Waranon output"] });
   }
   files.push(...newFiles);
-  return { errors, warnings, files, localisationFolder: loc.folder };
+
+  // Standalone files from earlier exports that this export no longer produces (renamed nation tag,
+  // deleted voice clip…). Edits inside game files are fenced and replaced; these would otherwise linger.
+  const previous = parseManifest(await source.readText(MANIFEST));
+  const written = new Set(files.map((f) => f.path));
+  const stale = previous.filter((p) => !written.has(p));
+  const created = newFiles.map((f) => f.path).sort();
+  files.push({
+    path: MANIFEST,
+    data: `${JSON.stringify({ about: "Files Waranon created in this mod; the next export removes ones it no longer needs.", files: created }, null, 2)}\n`,
+    kind: "new",
+    notes: ["List of files Waranon created (lets the next export clean up)"],
+  });
+  return { errors, warnings, files, stale, localisationFolder: loc.folder };
+}
+
+/** Mod-root list of files Waranon created, so later exports can remove ones they no longer write. */
+export const MANIFEST = "waranon-files.json";
+
+function parseManifest(text) {
+  try {
+    const files = JSON.parse(text || "null")?.files;
+    return Array.isArray(files) ? files.filter((p) => typeof p === "string" && p.startsWith("GameData/")) : [];
+  } catch {
+    return [];
+  }
 }
 
 // ── Voice lines ──────────────────────────────────────────────────────────────

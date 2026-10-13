@@ -193,6 +193,11 @@ function NationEditor({ nation: n, navigate }) {
             const extra = units.length + divisions.length ? ` Its ${units.length} unit(s) and ${divisions.length} division(s) will need a new nation.` : "";
             if (window.confirm(`Delete ${n.name || "this nation"}?${extra}`)) {
               removeAsset(n.flagAssetId);
+              // voice clips keep two recordings each (original + encoded .ogg)
+              for (const c of n.voice?.clips || []) {
+                removeAsset(c.assetId);
+                removeAsset(c.sourceAssetId);
+              }
               removeItem("nations", n.id);
             }
           }}

@@ -91,7 +91,7 @@ export default function ExportPage({ navigate }) {
     setConfirming(false);
     try {
       if (!(await source.requestWrite())) throw new Error("Write permission was not granted, so nothing was changed.");
-      const res = await writeWithBackup(source, result.files, { onProgress: setBusy });
+      const res = await writeWithBackup(source, result.files, { onProgress: setBusy, remove: result.stale || [] });
       setWritten({ count: result.files.length, ...res });
     } catch (err) {
       setError(err.message);
@@ -204,6 +204,23 @@ export default function ExportPage({ navigate }) {
                 ))}
               </tbody>
             </table>
+            {result.stale?.length > 0 && (
+              <div className="callout">
+                <strong>
+                  {result.stale.length} file{result.stale.length > 1 ? "s" : ""} from an earlier export {result.stale.length > 1 ? "are" : "is"} no longer
+                  needed
+                </strong>{" "}
+                (a renamed nation, a deleted voice clip…). &quot;Write into folder&quot; backs {result.stale.length > 1 ? "them" : "it"} up and deletes{" "}
+                {result.stale.length > 1 ? "them" : "it"}; with the .zip, delete {result.stale.length > 1 ? "them" : "it"} from your mod folder yourself:
+                <ul className="confirm-files">
+                  {result.stale.map((p) => (
+                    <li key={p} className="mono small">
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="row gap wrap">
               <Button variant="primary" onClick={downloadZip} disabled={!!busy}>
                 Download .zip
@@ -221,7 +238,10 @@ export default function ExportPage({ navigate }) {
             </p>
             {written && (
               <div className="ok-box">
-                <p className="ok">✓ {written.count} files written to {source.name}.</p>
+                <p className="ok">
+                  ✓ {written.count} files written to {source.name}
+                  {written.removed?.length > 0 && `, ${written.removed.length} old file${written.removed.length > 1 ? "s" : ""} removed`}.
+                </p>
                 <p className="small">
                   {written.backedUp.length} originals backed up to <code>{written.backupDir}/</code>. To undo, copy that folder&apos;s contents back over
                   your mod folder{written.created.length > 0 && ` and delete the ${written.created.length} new files listed in its README.txt`}.
@@ -261,6 +281,11 @@ export default function ExportPage({ navigate }) {
             {result.files.map((f) => (
               <li key={f.path}>
                 <span className={`file-kind file-${f.kind}`}>{f.kind === "new" ? "new" : "edit"}</span> <span className="mono small">{f.path}</span>
+              </li>
+            ))}
+            {(result.stale || []).map((p) => (
+              <li key={p}>
+                <span className="file-kind file-delete">delete</span> <span className="mono small">{p}</span>
               </li>
             ))}
           </ul>
