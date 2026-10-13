@@ -1,0 +1,104 @@
+/*
+ * Refined interface (sidebar switch "Interface: Refined"). Every rule is scoped to
+ * :root[data-ui="refined"], so the classic look in index.css stays exactly as it was.
+ * Same palette and identity; calmer navigation, steadier spacing, consistent states.
+ */
+
+/* ── Browser surfaces ─────────────────────────────────────────────────────── */
+:root[data-ui="refined"] {
+  scrollbar-color: var(--line-2) var(--bg-2);
+  caret-color: var(--accent);
+}
+:root[data-ui="refined"] ::selection { background: color-mix(in srgb, var(--accent) 38%, transparent); color: var(--text); }
+:root[data-ui="refined"] input[type="number"],
+:root[data-ui="refined"] .nav-count,
+:root[data-ui="refined"] .count-n,
+:root[data-ui="refined"] .tab-badge,
+:root[data-ui="refined"] td { font-variant-numeric: tabular-nums; }
+:root[data-ui="refined"] a,
+:root[data-ui="refined"] .link { text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+/* desktop only: below 760px the classic stacked layout (index.css) takes over unchanged */
+@media (min-width: 761px) {
+  :root[data-ui="refined"] .shell { grid-template-columns: 236px 1fr; }
+  :root[data-ui="refined"] .sidebar { gap: 16px; padding: 18px 12px 14px; overflow-y: auto; }
+}
+:root[data-ui="refined"] .nav-groups { display: flex; flex-direction: column; gap: 14px; }
+:root[data-ui="refined"] .nav-group-title {
+  padding: 0 10px 4px; font-size: 11px; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+:root[data-ui="refined"] .nav button {
+  min-height: 34px; padding: 6px 10px; border-radius: 6px; color: var(--muted);
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+:root[data-ui="refined"] .nav button:hover { background: var(--panel); color: var(--text); }
+:root[data-ui="refined"] .nav button.active { background: var(--panel-2); color: var(--text); box-shadow: none; font-weight: 600; }
+:root[data-ui="refined"] .nav-icon { display: inline-flex; width: 18px; justify-content: center; color: inherit; }
+:root[data-ui="refined"] .nav button.active .nav-icon { color: var(--accent); }
+:root[data-ui="refined"] .nav-count { background: transparent; color: var(--muted); padding: 0; min-width: 0; font-weight: 500; }
+
+/* the interface switch (shown in every mode): label above three equal options */
+.ui-switch { display: flex; flex-direction: column; gap: 6px; padding: 0 6px; font-size: 12px; color: var(--muted); }
+.ui-switch .segmented { display: flex; }
+.ui-switch .segmented button { flex: 1; padding: 4px 6px; font-size: 12px; }
+:root[data-ui="refined"] .ui-switch { margin-top: auto; }
+:root[data-ui="refined"] .credits { margin-top: 0; padding-top: 10px; }
+:root[data-ui="refined"] .credits summary {
+  cursor: pointer; list-style: none; font-size: 12px; color: var(--muted); padding: 2px 0;
+}
+:root[data-ui="refined"] .credits summary::-webkit-details-marker { display: none; }
+:root[data-ui="refined"] .credits summary::after { content: " ▾"; font-size: 10px; }
+:root[data-ui="refined"] .credits details[open] summary { color: var(--text); margin-bottom: 6px; }
+:root[data-ui="refined"] .credits summary:hover { color: var(--text); }
+
+/* ── Page frame ───────────────────────────────────────────────────────────── */
+:root[data-ui="refined"] .page { max-width: 1320px; margin: 0; padding: 28px 36px 72px; }
+@media (max-width: 760px) { :root[data-ui="refined"] .page { padding: 20px 16px 48px; } }
+:root[data-ui="refined"] .page-header { align-items: flex-end; margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+:root[data-ui="refined"] .page-header h1 { font-size: 21px; letter-spacing: 0.05em; }
+:root[data-ui="refined"] .page-subtitle { max-width: 72ch; line-height: 1.5; margin-top: 6px; }
+:root[data-ui="refined"] .card { border-radius: 10px; padding: 20px; }
+:root[data-ui="refined"] .card-title { font-size: 16px; }
+:root[data-ui="refined"] .section-title { margin: 28px 0 12px; }
+:root[data-ui="refined"] .md-detail > .section-title:first-child,
+:root[data-ui="refined"] .tab-body > .section-title:first-child { margin-top: 8px; }
+
+/* ── Buttons: one vocabulary, quiet transitions, honest disabled state ───── */
+:root[data-ui="refined"] .btn { transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out; }
+:root[data-ui="refined"] .btn:hover:not(:disabled) { border-color: var(--muted); background: color-mix(in srgb, var(--panel-2) 80%, var(--text) 6%); }
+:root[data-ui="refined"] .btn-primary:hover:not(:disabled) { background: var(--accent-2); border-color: var(--accent-2); }
+:root[data-ui="refined"] .btn:active:not(:disabled) { transform: translateY(1px); }
+:root[data-ui="refined"] .btn:disabled { opacity: 0.45; }
+/* every destructive action looks the same: red text, red outline on hover */
+:root[data-ui="refined"] .btn-danger,
+:root[data-ui="refined"] .btn-ghost-danger { background: transparent; border-color: transparent; color: var(--err); }
+:root[data-ui="refined"] .btn-danger:hover:not(:disabled),
+:root[data-ui="refined"] .btn-ghost-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--err) 10%, transparent); border-color: color-mix(in srgb, var(--err) 60%, transparent);
+}
+
+/* ── Inputs: visible hover, a soft focus ring instead of a colour jump ───── */
+:root[data-ui="refined"] .input { transition: border-color 150ms ease-out, box-shadow 150ms ease-out; }
+:root[data-ui="refined"] .input:hover:not(:focus):not(:disabled) { border-color: var(--line-2); }
+:root[data-ui="refined"] .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+:root[data-ui="refined"] .input::placeholder { color: color-mix(in srgb, var(--muted) 85%, transparent); }
+
+/* ── Lists and tabs ───────────────────────────────────────────────────────── */
+:root[data-ui="refined"] .md-item,
+:root[data-ui="refined"] .picker-item,
+:root[data-ui="refined"] .gallery-item,
+:root[data-ui="refined"] .voice-cat { transition: border-color 150ms ease-out, background-color 150ms ease-out; }
+:root[data-ui="refined"] .tabs button { transition: color 150ms ease-out, border-color 150ms ease-out; }
+:root[data-ui="refined"] .tabs button:hover { color: var(--text); }
+
+/* ── Status surfaces: colour in the words, not in thick side stripes ─────── */
+:root[data-ui="refined"] .points-panel,
+:root[data-ui="refined"] .gallery-value { border-left-width: 1px; border-left-color: var(--line); }
+:root[data-ui="refined"] .points-badge::before,
+:root[data-ui="refined"] .gallery-value .verdict::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; background: currentColor;
+}
+:root[data-ui="refined"] .ability-changed { box-shadow: none; border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+:root[data-ui="refined"] .balance-table tr.custom td { box-shadow: none; background: color-mix(in srgb, var(--accent) 7%, transparent); }
+:root[data-ui="refined"] .balance-table tbody tr:hover td { background: var(--panel); }

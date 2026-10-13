@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Credits from "./components/Credits";
+import MapControl from "./components/MapControl";
+import NavIcon from "./components/NavIcon";
+import TopoBackdrop from "./components/TopoBackdrop";
 import { loadGameData } from "./lib/gameData";
+import { useTopo } from "./lib/topo";
 import AbilitiesPage from "./pages/AbilitiesPage";
 import AlliancesPage from "./pages/AlliancesPage";
 import BalancePage from "./pages/BalancePage";
@@ -13,6 +17,7 @@ import UnitsPage from "./pages/UnitsPage";
 import VoicesPage from "./pages/VoicesPage";
 import { ProjectProvider } from "./state/ProjectContext";
 import { useProject } from "./state/useProject";
+import { useUiVersion } from "./state/useUiVersion";
 
 const PAGES = [
   { id: "overview", label: "Overview", icon: "◎", component: ProjectPage },
@@ -25,6 +30,14 @@ const PAGES = [
   { id: "balance", label: "Balance", icon: "⚖", component: BalancePage },
   { id: "export", label: "Export", icon: "⇩", component: ExportPage },
   { id: "gallery", label: "Gallery", icon: "▦", component: GalleryPage },
+];
+
+// Refined interface: the same pages, grouped by what you're doing.
+const NAV_GROUPS = [
+  { title: null, pages: ["overview"] },
+  { title: "Build", pages: ["alliances", "nations", "units", "abilities", "voices", "divisions"] },
+  { title: "Insight", pages: ["balance", "gallery"] },
+  { title: "Ship", pages: ["export"] },
 ];
 
 /** "#/units/<unitId>/weapons" -> { page: "units", id: "<unitId>", tab: "weapons" } */
@@ -53,8 +66,42 @@ export default function App() {
 
 function Shell() {
   const { project, saveState } = useProject();
+  const [ui, setUi] = useUiVersion();
+  const refined = ui !== "classic"; // "field" builds on refined
+  const field = ui === "field";
+  const topo = useTopo(field);
+  const [exploring, setExploring] = useState(false);
+  const exploreOn = field && exploring && topo.settings.show;
+  useEffect(() => {
+    if (exploreOn) document.documentElement.dataset.explore = "on";
+    else delete document.documentElement.dataset.explore;
+  }, [exploreOn]);
+  /** step through the maps while exploring (pins the one you land on) */
+  const stepMap = (dir) => {
+    const list = topo.regions;
+    const i = Math.max(0, list.findIndex((r) => r.id === topo.current?.id));
+    topo.update({ pinned: list[(i + dir + list.length) % list.length].id });
+  };
   const [route, setRoute] = useState(routeFromHash);
   const page = route.page;
+  const navRef = useRef(null);
+  const [marker, setMarker] = useState(null);
+
+  // Field: one marker slides to the active page instead of the highlight jumping
+  useLayoutEffect(() => {
+    if (!field) return undefined;
+    const place = () => {
+      const box = navRef.current;
+      const active = box?.querySelector("button.active");
+      if (!box || !active) return setMarker(null);
+      const b = box.getBoundingClientRect();
+      const a = active.getBoundingClientRect();
+      setMarker({ y: a.top - b.top + box.scrollTop, h: a.height });
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [field, page]);
 
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
@@ -72,6 +119,18 @@ function Shell() {
 
   return (
     <div className="shell">
+      {field && topo.settings.show && (
+        <TopoBackdrop
+          region={topo.region}
+          shift={page}
+          strength={topo.settings.strength}
+          explore={exploreOn}
+          onExit={() => setExploring(false)}
+          onNext={() => stepMap(1)}
+          onPrev={() => stepMap(-1)}
+        />
+      )}
+      {field && <MapControl topo={topo} onExplore={() => setExploring(true)} />}
       <nav className="sidebar">
         <div className="brand">
           <span className="brand-mark">W</span>
@@ -84,18 +143,60 @@ function Shell() {
           {project.name}
           <SaveIndicator state={saveState} />
         </div>
-        <ul className="nav">
-          {PAGES.map((p) => (
-            <li key={p.id}>
-              <button type="button" className={page === p.id ? "active" : ""} onClick={() => navigate(p.id)}>
-                <span className="nav-icon">{p.icon}</span>
-                <span className="nav-label">{p.label}</span>
-                {p.count && <span className="nav-count">{p.count(project)}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <Credits />
+        {refined ? (
+          <div className="nav-groups" ref={navRef}>
+            {field && marker && <span className="nav-marker" style={{ transform: `translateY(${marker.y}px)`, height: marker.h }} aria-hidden="true" />}
+            {NAV_GROUPS.map((g) => (
+              <div key={g.title || "top"} className="nav-group">
+                {g.title && <div className="nav-group-title">{g.title}</div>}
+                <ul className="nav">
+                  {g.pages.map((id) => {
+                    const p = PAGES.find((x) => x.id === id);
+                    const n = p.count?.(project) || 0;
+                    return (
+                      <li key={p.id}>
+                        <button type="button" className={page === p.id ? "active" : ""} aria-current={page === p.id ? "page" : undefined} onClick={() => navigate(p.id)}>
+                          <span className="nav-icon">
+                            <NavIcon name={p.id} />
+                          </span>
+                          <span className="nav-label">{p.label}</span>
+                          {n > 0 && <span className="nav-count">{n}</span>}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <ul className="nav">
+            {PAGES.map((p) => (
+              <li key={p.id}>
+                <button type="button" className={page === p.id ? "active" : ""} onClick={() => navigate(p.id)}>
+                  <span className="nav-icon">{p.icon}</span>
+                  <span className="nav-label">{p.label}</span>
+                  {p.count && <span className="nav-count">{p.count(project)}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="ui-switch" role="group" aria-label="Interface style">
+          <span className="ui-switch-label">Interface</span>
+          <span className="segmented">
+            <button type="button" className={refined ? "" : "on"} aria-pressed={!refined} onClick={() => setUi("classic")}>
+              Classic
+            </button>
+            <button type="button" className={ui === "refined" ? "on" : ""} aria-pressed={ui === "refined"} onClick={() => setUi("refined")}>
+              Refined
+            </button>
+            <button type="button" className={field ? "on" : ""} aria-pressed={field} onClick={() => setUi("field")}>
+              Field
+            </button>
+          </span>
+        </div>
+        <Credits collapsible={refined} terrain={field} />
       </nav>
       <main className="main">
         <Page key={`${project.id}-${page}-${route.id || ""}-${route.tab || ""}`} navigate={navigate} route={route} />
@@ -106,5 +207,10 @@ function Shell() {
 
 function SaveIndicator({ state }) {
   const label = { saved: "Saved", unsaved: "Saving…", saving: "Saving…", error: "Not saved!", loading: "" }[state];
-  return <span className={`save save-${state}`}>{label}</span>;
+  // keyed by state so each completed save replays the Field stamp
+  return (
+    <span key={state} className={`save save-${state}`}>
+      {label}
+    </span>
+  );
 }

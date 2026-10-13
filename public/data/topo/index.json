@@ -1,0 +1,52 @@
+[
+ {
+  "id": "kabul",
+  "name": "Kabul basin",
+  "place": "Afghanistan",
+  "lat": 34.53,
+  "lon": 69.17,
+  "min": 1728,
+  "max": 3791,
+  "interval": 100
+ },
+ {
+  "id": "ashau",
+  "name": "A Shau Valley",
+  "place": "Vietnam",
+  "lat": 16.22,
+  "lon": 107.22,
+  "min": 43,
+  "max": 2041,
+  "interval": 50
+ },
+ {
+  "id": "maestra",
+  "name": "Sierra Maestra",
+  "place": "Cuba",
+  "lat": 20.03,
+  "lon": -76.86,
+  "min": 0,
+  "max": 1958,
+  "interval": 50
+ },
+ {
+  "id": "fulda",
+  "name": "Fulda Gap",
+  "place": "Inner German border",
+  "lat": 50.58,
+  "lon": 9.92,
+  "min": 236,
+  "max": 941,
+  "interval": 20
+ },
+ {
+  "id": "harz",
+  "name": "Harz / Brocken",
+  "place": "Inner German border",
+  "lat": 51.79,
+  "lon": 10.62,
+  "min": 166,
+  "max": 1134,
+  "interval": 25
+ }
+]

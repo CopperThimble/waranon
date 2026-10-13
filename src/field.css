@@ -1,0 +1,140 @@
+/*
+ * Field interface (sidebar switch "Field"): the refined interface plus a map-desk layer.
+ * Builds on refined.css (data-ui="refined" is set too); everything here is scoped to
+ * :root[data-flair="field"]. One authored moment (the terrain settling under a new page) and
+ * three quiet supporting details. prefers-reduced-motion keeps the look and drops the movement.
+ */
+
+/* ── Terrain under the work ───────────────────────────────────────────────── */
+/* olive-drab map inks, read by TopoBackdrop */
+:root[data-flair="field"] {
+  --topo-minor: #7b8544;
+  --topo-index: #a9ae6c;
+  --topo-label: #b9b582;
+  --topo-light: #cfcb9c;
+  --topo-dark: #000000;
+}
+/* z-index -1 inside the shell's stacking context: under every panel, above the page background */
+.topo-backdrop { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: -1; }
+/* the sheet fades in below the page header, so titles and descriptions always sit on calm ground */
+:root[data-flair="field"] .topo-backdrop {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 90px, #000 220px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 90px, #000 220px);
+}
+/* empty states float on the map: give their text a soft backing */
+:root[data-flair="field"] .empty { background: color-mix(in srgb, var(--bg) 84%, transparent); }
+:root[data-flair="field"] .shell { position: relative; z-index: 1; }
+:root[data-flair="field"] .sidebar { background: color-mix(in srgb, var(--bg-2) 94%, transparent); }
+
+/* ── Sliding position marker in the sidebar ───────────────────────────────── */
+:root[data-flair="field"] .nav-groups { position: relative; }
+:root[data-flair="field"] .nav-marker {
+  position: absolute; top: 0; left: 0; right: 0; border-radius: 6px; pointer-events: none;
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+  transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), height 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* a pin-head on the marker: the "you are here" point */
+:root[data-flair="field"] .nav-marker::after {
+  content: ""; position: absolute; right: 10px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
+  border-radius: 50%; background: var(--accent);
+}
+:root[data-flair="field"] .nav button { position: relative; z-index: 1; }
+:root[data-flair="field"] .nav button.active { background: transparent; }
+:root[data-flair="field"] .nav button.active .nav-count { margin-right: 14px; }
+
+/* ── Ink stamp when autosave finishes ─────────────────────────────────────── */
+:root[data-flair="field"] .save-saved {
+  align-self: flex-start; display: inline-block; padding: 0 5px; border: 1px solid currentColor; border-radius: 3px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  transform: rotate(-3deg); animation: field-stamp 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes field-stamp {
+  from { transform: rotate(-9deg) scale(1.7); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: rotate(-3deg) scale(1); opacity: 1; }
+}
+
+/* ── Survey-line page titles ──────────────────────────────────────────────── */
+:root[data-flair="field"] .page-header { position: relative; border-bottom-color: transparent; }
+:root[data-flair="field"] .page-header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 25%, var(--line)) 35%, var(--line));
+  transform-origin: left; animation: field-survey 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+:root[data-flair="field"] .page-header h1 { animation: field-uncover 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes field-survey { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes field-uncover { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* ── Map-sheet corner ticks on panels ─────────────────────────────────────── */
+:root[data-flair="field"] .card {
+  --tick: color-mix(in srgb, var(--accent) 38%, transparent);
+  background-image:
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick));
+  background-repeat: no-repeat;
+  background-size: 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px;
+  /* full edge-offset form for every corner (a bare `6px bottom 6px` is invalid and drops the whole list) */
+  background-position: left 6px top 6px, left 6px top 6px, right 6px top 6px, right 6px top 6px, left 6px bottom 6px, left 6px bottom 6px, right 6px bottom 6px, right 6px bottom 6px;
+}
+
+/* ── Reduced motion: same look, no movement ───────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-flair="field"] .nav-marker { transition: none; }
+  :root[data-flair="field"] .save-saved,
+  :root[data-flair="field"] .page-header h1,
+  :root[data-flair="field"] .page-header::after { animation: none; }
+}
+
+/* ── Map control (top right) ─────────────────────────────────────────────── */
+.map-control { position: fixed; top: 10px; right: 18px; z-index: 30; }
+.map-chip {
+  display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px; border-radius: 14px;
+  border: 1px solid var(--line-2); background: color-mix(in srgb, var(--bg-2) 88%, transparent); color: var(--muted);
+  font-size: 12px; transition: color 150ms ease-out, border-color 150ms ease-out;
+}
+.map-chip:hover, .map-chip[aria-expanded="true"] { color: var(--text); border-color: var(--muted); }
+.map-chip-name { color: var(--text); font-weight: 600; }
+.map-chip-place { color: var(--muted); }
+.map-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; width: 320px; display: grid; gap: 12px; padding: 14px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow); font-size: 12.5px;
+}
+.map-source { display: grid; gap: 3px; padding-bottom: 12px; border-bottom: 1px solid var(--line); color: var(--muted); line-height: 1.45; }
+.map-source strong { color: var(--text); font-size: 13px; }
+.map-source .mono { font-size: 11px; }
+.map-source a, .credits a { color: var(--accent-2); }
+.map-field { display: grid; gap: 5px; }
+.map-field input[type="range"] { width: 100%; }
+
+/* ── Explore the map: the interface steps aside ──────────────────────────── */
+:root[data-explore] .sidebar,
+:root[data-explore] .main,
+:root[data-explore] .map-control { display: none; }
+:root[data-explore] .topo-backdrop {
+  z-index: 0; pointer-events: auto; cursor: grab; -webkit-mask-image: none; mask-image: none;
+  transition: opacity 300ms ease-out;
+}
+:root[data-explore] .topo-backdrop.dragging { cursor: grabbing; }
+.map-explore { justify-self: start; }
+.explore-ui { position: fixed; inset: 0; z-index: 2; pointer-events: none; font-size: 12.5px; }
+.explore-ui > * { pointer-events: auto; }
+.explore-title {
+  position: absolute; left: 20px; bottom: 18px; display: grid; gap: 2px; padding: 10px 14px; border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--line); color: var(--muted);
+}
+.explore-title strong { color: var(--text); font-size: 15px; letter-spacing: 0.02em; }
+.explore-actions { position: absolute; top: 14px; right: 18px; display: flex; gap: 6px; }
+.explore-actions .btn { min-height: 30px; }
+.explore-hint {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 5px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 78%, transparent); color: var(--muted); pointer-events: none; white-space: nowrap;
+}
+.explore-probe {
+  position: absolute; display: grid; gap: 1px; padding: 5px 9px; border-radius: 6px; pointer-events: none;
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent); border: 1px solid var(--line-2);
+  font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.explore-probe strong { color: var(--text); font-size: 12.5px; }
