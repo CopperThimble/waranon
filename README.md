@@ -56,7 +56,7 @@ Vanilla unit and weapon names come from `data/vanilla_localisation.csv`, which i
 src/lib/        exportMod.js (patching), ndf.js (text helpers), validate.js, model.js,
                 gameData.js, storage.js (IndexedDB), images.js, modFolder.js (folder access)
 src/state/      ProjectContext (load/autosave/CRUD), useProject
-src/pages/      Overview, Alliances, Nations, Units, Abilities, Divisions, Balance, Export, Gallery
+src/pages/      Overview, Alliances, Nations, Units, Abilities, Voices, Divisions, Balance, Export, Gallery
 src/components/ ui primitives, UnitPicker, flags/thumbnails
 scripts/        data extraction (Python), exporter test (Node)
 ```
@@ -66,7 +66,13 @@ scripts/        data extraction (Python), exporter test (Node)
 - Only **two sides** exist (`TWargameCoalition` is NATO=0 / PACT=1, mirrored from C++). Custom alliances fight on one of them.
 - Armor values are indices into fixed tables (`DamageResistance.ndf`); for example, heavy armor (`blindage`) has 30 levels. The unit editor enforces these.
 - Cloned units keep the base unit's `MimeticName`/model, so they reuse its 3D model, animations and depiction.
-- Weapons added in the builder (on an existing turret, or as a coaxial gun slaved to one) need a muzzle point and firing effect, so the unit gets its own copy of the vehicle depiction (`DepictionVehicles.ndf` + `DepictionGhosts.ndf`) under a new BlackHoleKey. Ground vehicles only for now; vanilla limits of 6 weapons, 5 turrets and 5 ammo boxes per unit are enforced.
+- Weapons added in the builder need something to fire from, so the unit gets its own copy of its depiction under a new key (`WR_<unit>`):
+  - ground vehicles: on an existing turret or as a coaxial gun, firing from the turret's muzzle (`DepictionVehicles.ndf` + `DepictionGhosts.ndf`);
+  - planes and helicopters: on an existing mount, firing from its gun muzzle or launching from the pylons of the missiles already on it (`DepictionAerialUnits.ndf`, `DepictionOperator_WeaponMissileCarriageFire`);
+  - infantry: as a new soldier role (own `TTurretInfanterieDescriptor`, `WeaponAlternative_N`) holding the weapon the way vanilla squads hold it: model, pose and muzzle effect come from `game.infantryWeapons` (`Infanterie/DepictionInfantry.ndf`: weapon alternatives, soldier depiction, transported-infantry entry and `squad_<key>` mimetic).
+  Vanilla limits of 6 weapons, 5 turrets and 5 ammo boxes per unit are enforced.
+- A squad needs at least one weapon per soldier, counted per turret (several ammo types on one turret count once), and every GUID in a copied unit must be new (squads carry a second one in `MimeticDescriptor`).
+- Voice lines (Voices page): units pick lines by `AcknowUnitTypes` (e.g. Command, Inf) and the game adds the radio filter itself. Clips are recorded/uploaded in the browser, trimmed and encoded to mono 44.1 kHz Ogg Vorbis (`wasm-media-encoders`), written to `GameData/Assets/Sons/Acknows/<TAG>/` and referenced from `Sound/AcknowDescriptors.ndf`; GenerateMod cooks them.
 - Ammo shot intervals and aim times must be multiples of the 0.1 s game tick, and turret angles are written at full precision (the engine checks elevation against exact pi/2).
 
 ## Legal and game art

@@ -43,10 +43,23 @@ project.assets.icon1 = { blob: png, name: "icon.png" };
 project.assets.emblem1 = { blob: png, name: "emblem.png" };
 
 const nation = { ...newNation(), tag: "RUR", name: "Ruritania", allianceId: alliance.id, flagAssetId: "flag1", voiceCountry: "UK", unitNamesDico: "NAMES_UK" };
+// voice clips (Voices page): replace UK infantry "select", add to UK command "move", and a category UK has no lines for
+const ogg = new Blob([new Uint8Array([0x4f, 0x67, 0x67, 0x53])], { type: "audio/ogg" });
+for (const id of ["v1", "v2", "v3", "v4", "v5"]) project.assets[id] = { blob: ogg, name: `${id}.ogg` };
+nation.voice = {
+  clips: [
+    { id: "c1", category: "Inf", action: "Select", assetId: "v1" },
+    { id: "c2", category: "Inf", action: "Select", assetId: "v2" },
+    { id: "c3", category: "Command", action: "Move", assetId: "v3" },
+    { id: "c4", category: "Seals", action: "Select", assetId: "v4" },
+  ],
+  keepVanilla: { "Command|Move": true },
+};
 project.nations.push(nation);
 // a second nation with a pasted name list (own name pool)
 project.nations.push({
-  ...newNation(), tag: "BOR", name: "Borduria", allianceId: alliance.id, baseFlagCountry: "POL", voiceCountry: "POL",
+  ...newNation(), tag: "BOR", name: "Borduria", allianceId: alliance.id, baseFlagCountry: "POL", voiceCountry: null,
+  voice: { clips: [{ id: "c5", category: "Inf", action: "Select", assetId: "v5" }] },
   unitNamesDico: "custom", customNames: "# test list\n1. Kurvi-Tasch\n- Sponsz\nSponsz\n\"Plekszy-Gladz\"\nZöldi; Müller\n",
 });
 
@@ -123,6 +136,23 @@ const guids = [...unitsFile.matchAll(/DescriptorId\s*=\s*GUID:\{([^}]*)\}/g)].ma
 const dupes = guids.filter((g, i) => guids.indexOf(g) !== i);
 console.log(dupes.length ? `unique GUIDs: FAILED (${[...new Set(dupes)].join(", ")})` : `unique GUIDs: OK (${guids.length})`);
 if (dupes.length) process.exit(1);
+// voice lines: files + entries (inside the Waranon section of AcknowDescriptors.ndf)
+const ack = byPath["GameData/Generated/Sound/AcknowDescriptors.ndf"] || "";
+const region = ack.slice(ack.indexOf("// >>> waranon:"), ack.indexOf("// <<< waranon:"));
+const entry = (tag, type, action) =>
+  new RegExp(String.raw`MotherCountry = '${tag}'\s*TypeSpecific\s*=\s*TAcknowUnitType_${type}\s*Action\s*=\s*TAcknowUnitAction_${action}\s*Sounds\s*=\s*\[([\s\S]*?)\]`).exec(region)?.[1] || null;
+const infSel = entry("RUR", "Inf", "Select");
+const cmdMove = entry("RUR", "Command", "Move");
+const voiceChecks = {
+  "clip files written": ["WR_Inf_Select_1", "WR_Inf_Select_2", "WR_Command_Move_1", "WR_Seals_Select_1"].every((n) => byPath[`GameData/Assets/Sons/Acknows/RUR/${n}.ogg`]) && byPath["GameData/Assets/Sons/Acknows/BOR/WR_Inf_Select_1.ogg"],
+  "replaced lines hold only our clips": infSel && (infSel.match(/Template_UnitAcknow/g) || []).length === 2 && infSel.includes("Acknows/RUR/WR_Inf_Select_2.ogg' Filter = TSoundFilter_RadioOutside"),
+  "kept lines keep vanilla + ours": cmdMove && (cmdMove.match(/Acknows\/UK\//g) || []).length > 0 && cmdMove.includes("WR_Command_Move_1.ogg"),
+  "new entry for a category the source lacks": (entry("RUR", "Seals", "Select") || "").includes("WR_Seals_Select_1.ogg"),
+  "nation without copied voices gets its own entry": (entry("BOR", "Inf", "Select") || "").includes("Acknows/BOR/WR_Inf_Select_1.ogg"),
+  "brackets balanced": ack.split("(").length === ack.split(")").length && ack.split("[").length === ack.split("]").length,
+};
+for (const [k, ok] of Object.entries(voiceChecks)) console.log(`voice: ${k}: ${ok ? "OK" : "FAILED"}`);
+if (Object.values(voiceChecks).some((ok) => !ok)) process.exit(1);
 console.log(namesOk ? "custom names: OK" : `custom names: FAILED\n${JSON.stringify(byPath[namesCsvPath])}`);
 if (!namesOk) process.exit(1);
 console.log(`warnings: ${first.warnings.length}`);

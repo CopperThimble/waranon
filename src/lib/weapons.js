@@ -92,16 +92,17 @@ export function effectiveMounted(game, loadout, override = {}) {
       });
     }),
   );
-  // Weapons added in the builder: on an existing turret, or on a new coaxial turret slaved to it.
+  // Weapons added in the builder: on an existing turret, on a new coaxial turret slaved to it, or
+  // (infantry) as a new soldier role with its own turret.
   for (const a of ov.added || []) {
     const ammo = game.ammo[a.ammo];
-    const host = loadout.turrets[a.turret];
+    const host = a.role ? null : loadout.turrets[a.turret];
     out.push({
       slot: `add:${a.id}`,
-      ti: a.turret,
+      ti: a.role ? null : a.turret,
       mi: null,
       added: a,
-      turretType: a.coax ? "TwoAxis" : host?.type,
+      turretType: a.role ? "Infanterie" : a.coax ? "TwoAxis" : host?.type,
       original: { ammo: a.ammo, count: a.count, box: a.box, hidden: false },
       override: {},
       ammoId: a.ammo,
@@ -111,6 +112,36 @@ export function effectiveMounted(game, loadout, override = {}) {
     });
   }
   return out;
+}
+
+/**
+ * How a unit can take new weapons: "vehicle" / "aerial" (clone of the unit's depiction, new weapons
+ * fire from an existing turret's muzzle or missile pylons), "infantry" (new soldier role carrying a
+ * vanilla hand-held weapon), or null.
+ */
+export function addKind(game, base) {
+  if (base.squadKey) return "infantry";
+  const dep = base.blackHoleKey && game.depictions?.[base.blackHoleKey];
+  if (!dep) return null;
+  return dep.file === "aerial" ? "aerial" : "vehicle";
+}
+
+/**
+ * Where a new weapon on turret ti fires from: { anchors } (gun muzzle / launcher bones) or
+ * { carriage, weaponIndex } (the missile pylons of an existing weapon). Null if the turret has neither.
+ */
+export function turretFireSource(game, base, ti) {
+  const slots = game.depictions?.[base.blackHoleKey]?.slots || {};
+  const turret = game.weapons[base.weapon]?.turrets[ti];
+  for (const m of turret?.mounted || []) {
+    const anchors = slots[m.slot]?.anchors;
+    if (anchors?.length) return { anchors };
+  }
+  for (const m of turret?.mounted || []) {
+    const s = slots[m.slot];
+    if (s?.carriage) return { carriage: s.carriage, weaponIndex: s.weaponIndex };
+  }
+  return null;
 }
 
 /** Muzzle points (depiction anchors) usable for a new weapon on turret ti, or [] if none. */
@@ -137,7 +168,7 @@ export function weaponTotals(loadout, override) {
   const added = override?.added || [];
   return {
     weapons: loadout.turrets.reduce((n, t) => n + t.mounted.length, 0) + added.length,
-    turrets: loadout.turrets.length + added.filter((a) => a.coax).length,
+    turrets: loadout.turrets.length + added.filter((a) => a.coax || a.role).length,
   };
 }
 
@@ -208,7 +239,7 @@ export function squadWeaponCount(game, base, unit = null) {
   if (!loadout) return 0;
   const perTurret = new Map();
   for (const w of effectiveMounted(game, loadout, unit?.weapons || {})) {
-    const key = w.added?.coax ? `coax:${w.slot}` : w.ti;
+    const key = w.added?.coax || w.added?.role ? `own:${w.slot}` : w.ti;
     const n = w.added ? w.added.count || 1 : w.override?.count ?? w.original?.count ?? 1;
     perTurret.set(key, Math.max(perTurret.get(key) || 0, n));
   }

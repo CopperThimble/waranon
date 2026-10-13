@@ -124,7 +124,7 @@ function NationEditor({ nation: n, navigate }) {
             </select>
           )}
         </Field>
-        <Field label="Voice lines" hint="Unit acknowledgements are copied from this country.">
+        <Field label="Voice lines" hint="Copied from this country; record your own on the Voices page.">
           {(id) => (
             <select id={id} className="input" value={n.voiceCountry || ""} onChange={(e) => set({ voiceCountry: e.target.value || null })}>
               <option value="">None (generic sounds)</option>

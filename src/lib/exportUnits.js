@@ -458,7 +458,35 @@ ${INDENT_MOUNTED}${mounted},
  */
 export function addWeaponsToBlock(block, loadout, added) {
   let t = block;
-  const onTurret = added.filter(({ a }) => !a.coax);
+  // infantry: each new soldier role is its own TTurretInfanterieDescriptor, built from the first one
+  const roles = added.filter(({ a }) => a.role);
+  if (roles.length) {
+    const first = objectSpans(t, "TTurretInfanterieDescriptor")[0];
+    if (!first) throw new Error("No infantry turret to copy in weapon descriptor");
+    const fText = t.slice(first.start, first.end);
+    const mSpan = objectSpans(fText, "TMountedWeaponDescriptor")[0];
+    const tmpl = fText.slice(mSpan.start, mSpan.end);
+    let bone = Math.max(0, ...loadout.turrets.map((x) => x.bone || 0));
+    for (const { a, n, donor } of roles) {
+      bone += 1;
+      const mounted = mountedFrom(tmpl, a, n)
+        .replace(/(EffectTag\s*=\s*)"[^"]*"/, `$1"${donor.effectTag}"`)
+        .replace(/(AnimateOnlyOneSoldier\s*=\s*)\w+/, `$1${donor.animOne ? "True" : "False"}`);
+      t = appendToList(
+        t,
+        /\bTurretDescriptorList\s*=/,
+        `        TTurretInfanterieDescriptor
+        (
+            MountedWeaponDescriptorList =
+            [
+${INDENT_MOUNTED}${mounted},
+            ]
+            YulBoneOrdinal = ${bone}
+        ),`,
+      );
+    }
+  }
+  const onTurret = added.filter(({ a }) => !a.coax && !a.role);
   const turretIds = [...new Set(onTurret.map(({ a }) => a.turret))].sort((x, y) => y - x);
   for (const ti of turretIds) {
     const span = objectSpans(t, TURRET_PATTERN)[ti];
@@ -471,7 +499,7 @@ export function addWeaponsToBlock(block, loadout, added) {
     }
     t = t.slice(0, span.start) + tText + t.slice(span.end);
   }
-  for (const { a, n } of added.filter((x) => x.a.coax)) {
+  for (const { a, n } of added.filter((x) => x.a.coax && !x.a.role)) {
     const span = objectSpans(t, TURRET_PATTERN)[a.turret];
     const mSpan = objectSpans(t.slice(span.start, span.end), "TMountedWeaponDescriptor")[0];
     const tmpl = t.slice(span.start + mSpan.start, span.start + mSpan.end);
@@ -495,8 +523,22 @@ export function findRegistration(text, typeName, key) {
   return null;
 }
 
-/** Fire operator definition for a new weapon slot. */
-export function fireOperator(name, kind, anchors, n) {
+/**
+ * Fire operator definition for a new weapon slot. `source` is { anchors } (muzzle bones) or
+ * { carriage, weaponIndex } (fire from an existing weapon's missile pylons).
+ */
+export function fireOperator(name, kind, source, n) {
+  if (source?.carriage) {
+    return `${name} is DepictionOperator_WeaponMissileCarriageFire
+(
+    Connoisseur = ${source.carriage}
+    FireEffectTag = "weapon_effet_tag${n}"
+    NbProj = 1
+    WeaponIndex = ${source.weaponIndex}
+    WeaponShootDataPropertyName = ['WeaponShootData_0_${n}']
+)`;
+  }
+  const anchors = Array.isArray(source) ? source : source?.anchors || [];
   const anchorList = `[${anchors.map((x) => `"${x}"`).join(", ")}]`;
   if (kind === "ContinuousFire") {
     return `${name} is DepictionOperator_WeaponContinuousFire
@@ -521,8 +563,8 @@ export function fireOperator(name, kind, anchors, n) {
  * Copy a vehicle's tactic registration under newKey, adding operators and Actions entries.
  * Returns the new registration text (null if the base registration isn't found).
  */
-export function cloneTacticRegistration(text, key, newKey, operatorNames, actions) {
-  const span = findRegistration(text, "TacticVehicleDepictionRegistration", key);
+export function cloneTacticRegistration(text, key, newKey, operatorNames, actions, typeName = "TacticVehicleDepictionRegistration") {
+  const span = findRegistration(text, typeName, key);
   if (!span) return null;
   let block = text.slice(span.start, span.end).replace(/(BlackHoleKey\s*=\s*)'[^']*'/, `$1'${newKey}'`);
   if (operatorNames.length) block = appendToList(block, /\bOperators\s*=/, operatorNames.map((o) => `        ${o},`).join("\n"));
@@ -543,4 +585,88 @@ export function setUnitBlackHoleKey(unitBlock, newKey) {
   if (!span) return unitBlock;
   const inner = unitBlock.slice(span.start, span.end).replace(/(BlackHoleKey\s*=\s*)"[^"]*"/, `$1"${newKey}"`);
   return unitBlock.slice(0, span.start) + inner + unitBlock.slice(span.end);
+}
+
+// ── Infantry: new soldier roles ──────────────────────────────────────────────
+
+function namedBlock(text, re) {
+  const m = re.exec(text);
+  if (!m) return null;
+  if (m[0].trimEnd().endsWith("[")) {
+    const end = text.indexOf("\n]", m.index);
+    return end < 0 ? null : { start: m.index, end: end + 2 };
+  }
+  const open = text.indexOf("(", m.index + m[0].length - 1);
+  const close = matchClose(text, open);
+  return close < 0 ? null : { start: m.index, end: close + 1 };
+}
+
+/**
+ * Copy an infantry squad's depiction (Infanterie/DepictionInfantry.ndf) under newKey, adding soldier
+ * roles. roles: [{ n, donor: { mesh, effectTag, anim } }] where n is the new WeaponAlternative_N.
+ * Returns { defs, entry, squad } (texts to append) or null if the squad isn't found.
+ *  defs  - AllWeaponAlternatives / AllWeaponSubDepiction(+Backpack) / TacticDepiction_<new>_Soldier
+ *  entry - TTransportedInfantryEntry for the transported-infantry catalog (Identifier = newKey)
+ *  squad - ('squad_<newKey>', TemplateInfantryDepictionSquad(...)) for TUnitMimeticRegistration
+ */
+export function cloneInfantryDepiction(text, key, newKey, roles) {
+  const k = escapeRegExp(key);
+  const altSpan = namedBlock(text, new RegExp(String.raw`^AllWeaponAlternatives_${k} is \[`, "m"));
+  const subSpan = namedBlock(text, new RegExp(String.raw`^AllWeaponSubDepiction_${k} is \w+\s*\(`, "m"));
+  const bagSpan = namedBlock(text, new RegExp(String.raw`^AllWeaponSubDepictionBackpack_${k} is \w+\s*\(`, "m"));
+  const solSpan = namedBlock(text, new RegExp(String.raw`^TacticDepiction_${k}_Soldier is \w+\s*\(`, "m"));
+  const entryMatch = new RegExp(String.raw`TTransportedInfantryEntry\s*\(\s*Count\s*=\s*\d+\s*Identifier\s*=\s*"${k}"`).exec(text);
+  const squadMatch = new RegExp(String.raw`\(\s*'squad_${k}',\s*TemplateInfantryDepictionSquad\(.*\)\),`).exec(text);
+  if (!altSpan || !subSpan || !bagSpan || !solSpan || !entryMatch || !squadMatch) return null;
+
+  const visuals = roles.map(({ n, donor }) => `  TDepictionVisual( SelectorId = ['WeaponAlternative_${n}'] MeshDescriptor = $/GFX/DepictionResources/${donor.mesh} ),`);
+  let alt = text.slice(altSpan.start, altSpan.end).replace(`AllWeaponAlternatives_${key} is`, `AllWeaponAlternatives_${newKey} is`);
+  const meshless = alt.search(/^\s*TMeshlessDepictionDescriptor/m);
+  alt = meshless >= 0 ? `${alt.slice(0, meshless)}${visuals.join("\n")}\n${alt.slice(meshless)}` : alt.replace(/\n\]$/, `\n${visuals.join("\n")}\n]`);
+
+  const ops = roles.map(
+    ({ n, donor }) => `    DepictionOperator_WeaponInstantFireInfantry
+    (
+      FireEffectTag = "${donor.effectTag}"
+      WeaponShootDataPropertyName = "WeaponShootData_0_${n}"
+    ),`,
+  );
+  let sub = text
+    .slice(subSpan.start, subSpan.end)
+    .replace(`AllWeaponSubDepiction_${key} is`, `AllWeaponSubDepiction_${newKey} is`)
+    .replace(`AllWeaponAlternatives_${key}`, `AllWeaponAlternatives_${newKey}`);
+  sub = appendToList(sub, /\bOperators\s*=/, ops.join("\n"));
+  const bag = text
+    .slice(bagSpan.start, bagSpan.end)
+    .replace(`AllWeaponSubDepictionBackpack_${key} is`, `AllWeaponSubDepictionBackpack_${newKey} is`)
+    .replace(`AllWeaponAlternatives_${key}`, `AllWeaponAlternatives_${newKey}`);
+
+  let sol = text
+    .slice(solSpan.start, solSpan.end)
+    .replace(`TacticDepiction_${key}_Soldier is`, `TacticDepiction_${newKey}_Soldier is`)
+    .replace(`AllWeaponSubDepiction_${key}`, `AllWeaponSubDepiction_${newKey}`)
+    .replace(`AllWeaponSubDepictionBackpack_${key}`, `AllWeaponSubDepictionBackpack_${newKey}`);
+  const tags = roles.filter(({ donor }) => donor.anim).map(({ n, donor }) => `('${donor.anim}', 'WeaponAlternative_${n}')`);
+  if (tags.length) {
+    if (/ConditionalTags\s*=\s*\[/.test(sol)) sol = sol.replace(/(ConditionalTags\s*=\s*\[[^\]]*?)\s*\]/, `$1, ${tags.join(", ")} ]`).replace(/\[\s*,\s*/, "[ ");
+    else sol = sol.replace(/DepictionOperator_SkeletalAnimation2_Default\(\s*\)/, `DepictionOperator_SkeletalAnimation2_Default( ConditionalTags = [ ${tags.join(", ")} ] )`);
+  }
+
+  const eOpen = text.indexOf("(", entryMatch.index);
+  const eClose = matchClose(text, eOpen);
+  const entry = text
+    .slice(entryMatch.index, eClose + 1)
+    .replace(`Identifier = "${key}"`, `Identifier = "${newKey}"`)
+    .replace(`UnitMimetic = TacticDepiction_${key}_Soldier`, `UnitMimetic = TacticDepiction_${newKey}_Soldier`);
+  const squad = squadMatch[0].replace(`'squad_${key}'`, `'squad_${newKey}'`);
+  return { defs: [alt, sub, bag, sol].join("\n"), entry: `        ${entry},`, squad: `        ${squad}` };
+}
+
+/** Point a cloned infantry unit at its own squad depiction (soldiers, squad and transport keys). */
+export function setSquadKey(unitBlock, oldKey, newKey) {
+  const k = escapeRegExp(oldKey);
+  return unitBlock
+    .replace(new RegExp(String.raw`(SoldierBlackHoleKey\s*=\s*)'${k}'`), `$1'${newKey}'`)
+    .replace(new RegExp(String.raw`(MimeticDescriptor\s*=\s*Descriptor_Unit_MimeticUnit\s*\([^)]*?BlackHoleKey\s*=\s*)'${k}'`), `$1'${newKey}'`)
+    .replace(new RegExp(String.raw`(TransportedSoldier\s*=\s*)'${k}'`), `$1'${newKey}'`);
 }

@@ -125,6 +125,40 @@ def useful_tags(tag_list):
     return sorted(t for t in tags if t and t not in NOISE_TAGS and not t.startswith(("UNITE_", "SM_")))
 
 
+def acknow_types(tu):
+    v = get_field(tu, "AcknowUnitTypes")
+    items = v[1] if v and v[0] == "list" else []
+    return [tail(sym(x)).replace("TAcknowUnitType_", "") for x in items]
+
+
+def extract_acknow(path):
+    """Voice lines: for each voice category (TAcknowUnitType_*), the events it has lines for, the radio
+    filter vanilla uses with it, and which countries have it. Base categories drop the country-variant
+    suffix (_SK, _QUE, _Marine)."""
+    text = path.read_text(encoding="utf-8")
+    ents = re.findall(
+        r"MotherCountry\s*=\s*'(\w+)'\s*TypeSpecific\s*=\s*TAcknowUnitType_(\w+)\s*Action\s*=\s*TAcknowUnitAction_(\w+)\s*Sounds\s*=\s*\[(.*?)\]",
+        text,
+        re.S,
+    )
+    types = {}
+    for country, typ, action, sounds in ents:
+        t = types.setdefault(typ, {"actions": set(), "countries": set(), "filters": {}})
+        t["actions"].add(action)
+        t["countries"].add(country)
+        for f in re.findall(r"Filter\s*=\s*TSoundFilter_(\w+)", sounds):
+            t["filters"][f] = t["filters"].get(f, 0) + 1
+    out = {}
+    for typ, t in sorted(types.items()):
+        out[typ] = {
+            "base": re.sub(r"_(SK|QUE|Marine)$", "", typ),
+            "actions": sorted(t["actions"]),
+            "countries": sorted(t["countries"]),
+            "filter": max(t["filters"], key=t["filters"].get) if t["filters"] else "RadioOutside",
+        }
+    return out
+
+
 def extract_units(path, loc, building=False):
     units = []
     for name, val in parse_file(path):
@@ -175,6 +209,8 @@ def extract_units(path, loc, building=False):
             "role": sym(get_field(ui, "UnitRole")),
             "buttonTexture": sym(get_field(ui, "ButtonTexture")),
             "specialties": [sym(s) for s in specialties[1]] if specialties else [],
+            # voice categories in priority order (TAcknowUnitType_Inf -> "Inf"); see extract_acknow
+            "acknow": acknow_types(tu),
             "tags": tags,
             "movingType": tail(sym(get_field(land, "UnitMovingType"))) if land else None,
             "weapon": weapon,
@@ -184,6 +220,7 @@ def extract_units(path, loc, building=False):
             "capacities": [tail(sym(c)) for c in caps[1]] if caps else [],
             "hasCapaciteModule": "TCapaciteModuleDescriptor" in mods,
             "blackHoleKey": sym(get_field(apparence, "BlackHoleKey")) if apparence else None,
+            "squadKey": sym(get_field(mods.get("TInfantrySquadModuleDescriptor"), "SoldierBlackHoleKey")) if mods.get("TInfantrySquadModuleDescriptor") else None,
             "stats": {
                 "cp": clean_num(num(map_lookup(get_field(prod, "ProductionRessourcesNeeded"), "Resource_CommandPoints"))),
                 "health": clean_num(num(get_field(mods.get("TBaseDamageModuleDescriptor"), "MaxPhysicalDamages"))),
@@ -304,6 +341,9 @@ def extract_weapons(path):
                     "box": clean_num(num(get_field(mw, "AmmoBoxIndex"))),
                     "hidden": sym(get_field(mw, "HideInInterface")) == "True",
                     "slot": slot_number(mw),
+                    "hand": sym(get_field(mw, "HandheldEquipmentKey")),  # infantry: WeaponAlternative_N
+                    "effectTag": sym(get_field(mw, "EffectTag")),  # infantry: FireEffect_*
+                    "animOne": sym(get_field(mw, "AnimateOnlyOneSoldier")) == "True",
                 })
             turrets.append({
                 "type": t[1].replace("TTurret", "").replace("Descriptor", ""),
@@ -399,35 +439,99 @@ def slot_number(mounted):
     return int(m.group(1)) if m else None
 
 
-def extract_vehicle_depictions(path):
+def matching_paren(text, open_idx):
+    depth = 0
+    for i in range(open_idx, len(text)):
+        c = text[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+    return -1
+
+
+def extract_depictions(path, reg_type, op_pattern, kind_name):
     """
-    Ground-vehicle depictions (DepictionVehicles.ndf), keyed by BlackHoleKey:
-    {key: {"slots": {N: {"kind": "InstantFire"|"ContinuousFire"|"MissileCarriageFire", "anchors": [...], "fx": "Weapon_X"}}}}
-    Each weapon slot N has a fire operator (muzzle point = anchors) and an Actions entry
-    "weapon_effet_tagN" -> Weapon_X (firing FX + sound) in the unit's registration.
+    Unit depictions keyed by BlackHoleKey, from DepictionVehicles.ndf (TacticVehicleDepictionRegistration,
+    operators DepictionOperator_<unit>_WeaponN) or DepictionAerialUnits.ndf (TacticAerialDepictionRegistration,
+    operators Op_<unit>_WeaponN):
+    {key: {"file": kind_name, "slots": {N: {"kind", "anchors", "fx", "carriage", "weaponIndex"}}}}
+    Each weapon slot N has a fire operator (muzzle anchors, or missile pylons for MissileCarriageFire)
+    and an Actions entry "weapon_effet_tagN" -> Weapon_X (firing FX + sound) in the registration.
     """
     text = path.read_text(encoding="utf-8")
     ops = {}
-    for name, kind, body in re.findall(r"^(DepictionOperator_\w+?_Weapon\d+) is DepictionOperator_Weapon(\w+)\s*\(([\s\S]*?)\n\)", text, re.M):
+    for name, kind, body in re.findall(op_pattern, text, re.M):
         tag = re.search(r'FireEffectTag\s*=\s*"weapon_effet_tag(\d+)"', body)
         anchors = re.search(r"Anchors\s*=\s*\[([^\]]*)\]", body)
+        carriage = re.search(r"Connoisseur\s*=\s*([\w/$~]+)", body)
+        widx = re.search(r"WeaponIndex\s*=\s*(\d+)", body)
         ops[name] = {
             "slot": int(tag.group(1)) if tag else None,
             "kind": kind,
             "anchors": re.findall(r'"([^"]+)"', anchors.group(1)) if anchors else [],
+            "carriage": carriage.group(1) if carriage else None,
+            "weaponIndex": int(widx.group(1)) if widx else None,
         }
     out = {}
-    for m in re.finditer(r"unnamed TacticVehicleDepictionRegistration\s*\(\s*BlackHoleKey\s*=\s*'([^']+)'", text):
-        start = m.start()
-        end = text.find("\nunnamed ", m.end())
-        block = text[start:end if end > 0 else len(text)]
+    for m in re.finditer(r"unnamed " + reg_type + r"\s*\(", text):
+        close = matching_paren(text, m.end() - 1)
+        block = text[m.start():close + 1]
+        key = re.search(r"BlackHoleKey\s*=\s*'([^']+)'", block)
+        if not key:
+            continue
         actions = dict(re.findall(r'\(\s*"weapon_effet_tag(\d+)"\s*,\s*(\w+)\s*\)', block))
         slots = {}
-        for op in re.findall(r"(DepictionOperator_\w+?_Weapon\d+)", block):
+        for op in re.findall(r"\b(\w+_Weapon\d+)\b", block):
             o = ops.get(op)
             if o and o["slot"] is not None:
-                slots[o["slot"]] = {"kind": o["kind"], "anchors": o["anchors"], "fx": actions.get(str(o["slot"]))}
-        out[m.group(1)] = {"slots": slots}
+                slot = {"kind": o["kind"], "anchors": o["anchors"], "fx": actions.get(str(o["slot"]))}
+                if o["carriage"]:
+                    slot["carriage"] = o["carriage"]
+                    slot["weaponIndex"] = o["weaponIndex"]
+                slots[o["slot"]] = slot
+        out[key.group(1)] = {"file": kind_name, "slots": slots}
+    return out
+
+
+def extract_vehicle_depictions(path):
+    return extract_depictions(
+        path, "TacticVehicleDepictionRegistration",
+        r"^(DepictionOperator_\w+?_Weapon\d+) is DepictionOperator_Weapon(\w+)\s*\(([\s\S]*?)\n\)", "vehicles")
+
+
+def extract_aerial_depictions(path):
+    return extract_depictions(
+        path, "TacticAerialDepictionRegistration",
+        r"^(Op_\w+?_Weapon\d+) is DepictionOperator_Weapon(\w+)\s*\(([\s\S]*?)\n\)", "aerial")
+
+
+def extract_infantry_depictions(path):
+    """
+    Infantry squads (Infanterie/DepictionInfantry.ndf), keyed by SoldierBlackHoleKey:
+    {key: {"soldier": TacticDepiction_X_Soldier, "meshes": {"WeaponAlternative_N": mesh}, "anim": {"WeaponAlternative_N": tag}}}
+    A soldier holds the mesh of his WeaponAlternative_N; the animation tag (smg / mmg / bazooka / grenade,
+    none = rifle) picks the pose; fire operators link FireEffect_* tags to WeaponShootData_0_N.
+    """
+    text = path.read_text(encoding="utf-8")
+    alts = {}
+    for name, body in re.findall(r"^AllWeaponAlternatives_(\w+) is \[([\s\S]*?)^\]", text, re.M):
+        alts[name] = dict(re.findall(r"SelectorId = \['(WeaponAlternative_\d+)'\] MeshDescriptor = \$/GFX/DepictionResources/(\w+)", body))
+    soldiers = {}
+    for name, body in re.findall(r"^TacticDepiction_(\w+)_Soldier is TemplateInfantryDepictionFactoryTactic\s*\(([\s\S]*?)^\)", text, re.M):
+        sub = re.search(r"AllWeaponSubDepiction_(\w+)", body)
+        soldiers[name] = {
+            "weapons": sub.group(1) if sub else None,
+            "anim": {alt: tag for tag, alt in re.findall(r"\('(\w+)',\s*'(WeaponAlternative_\d+)'\)", body)},
+        }
+    out = {}
+    for ident, soldier in re.findall(r'Identifier = "(\w+)"[\s\S]*?UnitMimetic = TacticDepiction_(\w+)_Soldier', text):
+        sd = soldiers.get(soldier)
+        if not sd or sd["weapons"] not in alts:
+            continue
+        out[ident] = {"soldier": soldier, "meshes": alts[sd["weapons"]], "anim": sd["anim"]}
     return out
 
 
@@ -633,9 +737,31 @@ def main():
 
     used_weapons = {u["weapon"] for u in units if u["weapon"]}
     depictions = extract_vehicle_depictions(gfx / "Depictions" / "DepictionVehicles.ndf")
+    depictions.update(extract_aerial_depictions(gfx / "Depictions" / "DepictionAerialUnits.ndf"))
     for u in units:
         if u.get("blackHoleKey") not in depictions:
-            u["blackHoleKey"] = None  # infantry / aircraft depictions aren't cloneable yet
+            u["blackHoleKey"] = None  # no cloneable depiction (infantry use squadKey instead)
+    infantry = extract_infantry_depictions(gfx / "Infanterie" / "DepictionInfantry.ndf")
+    for u in units:
+        if u.get("squadKey") not in infantry:
+            u["squadKey"] = None
+    # what a soldier needs to carry each hand-held ammo: taken from a vanilla squad that carries it
+    # (most common setup across all squads that carry it, so one odd squad doesn't decide)
+    candidates = {}
+    for u in units:
+        dep = infantry.get(u.get("squadKey"))
+        if not dep or not u.get("weapon") or u["weapon"] not in weapons:
+            continue
+        for t in weapons[u["weapon"]]["turrets"]:
+            for m in t["mounted"]:
+                mesh = dep["meshes"].get(m.get("hand"))
+                if mesh:
+                    combo = (mesh, m.get("effectTag"), dep["anim"].get(m["hand"]), m.get("animOne", False))
+                    candidates.setdefault(m["ammo"], {}).setdefault(combo, []).append(u["id"])
+    infantry_weapons = {}
+    for ammo_id, combos in sorted(candidates.items()):
+        (mesh, effect, anim, one), users = max(combos.items(), key=lambda kv: len(kv[1]))
+        infantry_weapons[ammo_id] = {"mesh": mesh, "effectTag": effect, "anim": anim, "animOne": one, "from": users[0], "squads": sum(map(len, combos.values()))}
     used_keys = {u["blackHoleKey"] for u in units if u["blackHoleKey"]}
     portraits = extract_unit_portraits(ui / "Textures" / "ButtonTexturesUnites.ndf")
     for u in units:
@@ -657,7 +783,9 @@ def main():
         "capacities": extract_capacities(gfx, gen / "Gameplay" / "Effects" / "EffetsSurUnite.ndf"),
         "specialtyIcons": extract_specialty_icons(ui),
         "impactPresets": extract_impact_presets(gfx / "MimeticImpactMapping.ndf"),
+        "acknow": extract_acknow(gen / "Sound" / "AcknowDescriptors.ndf"),
         "depictions": {k: v for k, v in depictions.items() if k in used_keys},
+        "infantryWeapons": infantry_weapons,
         "firingEffects": extract_firing_effects(gfx / "DepictionWeaponBlock.ndf"),
         "weaponIcons": extract_weapon_icons(ui / "Textures" / "WeaponTextures.ndf"),
         "divisions": divisions,
