@@ -2,6 +2,8 @@
 
 A browser app for building WARNO mods without hand-editing NDF: custom **alliances**, **nations** (flag, name, voice lines), **units** (cloned from vanilla, renamed, rebalanced, custom icon) and **divisions** (rosters, transports, emblem). Projects autosave in the browser (IndexedDB) and can be exported or imported as `.waranon.json` files.
 
+Github Pages: https://copperthimble.github.io/waranon/ 
+
 ## How export works
 
 1. In your WARNO install, run `Mods/CreateNewMod.bat MyMod`. That creates a mod *source* folder holding a full editable copy of the game data.
