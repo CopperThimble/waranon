@@ -49,8 +49,81 @@ function trace(region) {
       }
     }
   }
-  return { minor, index, labels };
+  // Pick the labels once, spaced out in map units, so they travel with the terrain instead of being
+  // re-chosen every frame (re-choosing per frame made them pop on and off while the map moved).
+  const kept = [];
+  for (const l of labels) {
+    if (!kept.some((k) => Math.abs(k.x - l.x) < 26 && Math.abs(k.y - l.y) < 14)) kept.push(l);
+  }
+  return { minor, index, labels: kept };
 }
+
+const PLACE_RANK = { city: 0, town: 1, village: 2 };
+const SPREAD = [6, 3, 1.4]; // grid cells of approximate town around a place with no mapped built-up area
+
+/**
+ * OpenStreetMap layers in grid units: one Path2D per kind, plus places. A place with no built-up
+ * polygon under it gets an approximate block texture around its point, so towns read as towns
+ * even where nobody has mapped the streets.
+ */
+function traceFeatures(features) {
+  const paths = {};
+  if (!features) return { paths, places: [] };
+  const k = 1 / (features.scale || 10);
+  const boxes = [];
+  for (const kind of ["water", "built", "rivers", "streams", "rail", "minor", "major"]) {
+    const path = new Path2D();
+    for (const line of features[kind] || []) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < line.length; i += 2) {
+        const x = line[i] * k;
+        const y = line[i + 1] * k;
+        if (i === 0) path.moveTo(x, y);
+        else path.lineTo(x, y);
+        if (kind === "built") (x0 = Math.min(x0, x)), (y0 = Math.min(y0, y)), (x1 = Math.max(x1, x)), (y1 = Math.max(y1, y));
+      }
+      if (kind === "water" || kind === "built") path.closePath();
+      if (kind === "built") boxes.push([x0, y0, x1, y1]);
+    }
+    paths[kind] = path;
+  }
+  const places = (features.places || []).map((p) => ({ ...p, rank: PLACE_RANK[p.t] ?? 2 }));
+  const blocks = new Path2D();
+  for (const p of places) {
+    if (boxes.some(([x0, y0, x1, y1]) => p.x >= x0 - 0.5 && p.x <= x1 + 0.5 && p.y >= y0 - 0.5 && p.y <= y1 + 0.5)) continue;
+    // a seeded scatter of small blocks, denser in the middle, like a town plan seen from far away
+    let seed = 2166136261;
+    for (const ch of p.n) seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619) >>> 0;
+    const rand = () => ((seed = Math.imul(seed ^ (seed >>> 15), 2246822507) >>> 0), seed / 4294967296);
+    const r = SPREAD[p.rank];
+    for (let n = Math.round(r * r * 5); n > 0; n--) {
+      const d = r * Math.sqrt(rand()) * (0.4 + 0.6 * rand());
+      const a = rand() * Math.PI * 2;
+      const s = 0.25 + rand() * 0.35;
+      blocks.rect(p.x + Math.cos(a) * d - s / 2, p.y + Math.sin(a) * d - s / 2, s, s * (0.7 + rand() * 0.6));
+    }
+  }
+  paths.blocks = blocks;
+  return { paths, places };
+}
+
+/** Which places get a name at this scale: biggest first, none overlapping. Depends only on the scale,
+ *  so panning never changes the choice (no labels popping in and out while the map moves). */
+function choosePlaces(places, scale, ctx) {
+  const kept = [];
+  const sparse = places.filter((p) => p.rank < 2).length < 4; // remote valleys: the villages are all there is
+  for (const p of places) {
+    if (p.rank === 2 && scale < 9 && !sparse) continue; // otherwise villages only when zoomed in
+    ctx.font = PLACE_FONT[p.rank];
+    const w = (ctx.measureText(p.rank === 0 ? p.n.toUpperCase() : p.n).width + 14) / scale;
+    const h = 18 / scale;
+    const box = [p.x - w / 2, p.y - h - 4 / scale, p.x + w / 2, p.y + 4 / scale];
+    if (kept.some(({ box: b }) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) continue;
+    kept.push({ ...p, box });
+  }
+  return kept;
+}
+const PLACE_FONT = ['600 12px "Cascadia Code", Consolas, monospace', '500 11px "Cascadia Code", Consolas, monospace', '10px "Cascadia Code", Consolas, monospace'];
 
 /** Relief shading as a cols x rows image: light on NW-facing slopes, shadow on SE, olive-tinted. */
 function hillshade(region, light, dark) {
@@ -124,6 +197,7 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
   const sheet = useRef(null); // traced region
   const view = useRef({ pan: [0.5, 0.5], from: [0.5, 0.5], to: [0.5, 0.5], start: 0, raf: 0, zoom: 1, geo: null });
   const paint = useRef(() => {});
+  const look = useRef({ strength, explore });
   const [probe, setProbe] = useState(null); // { x, y, h, lat, lon } under the pointer while exploring
 
   // trace a newly loaded region and set up the painter
@@ -131,21 +205,43 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
     if (!region) return undefined;
     const css = getComputedStyle(document.documentElement);
     const v = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
-    const ink = { minor: v("--topo-minor", "#7f8455"), index: v("--topo-index", "#a6a476"), label: v("--topo-label", "#9c9a70"), paper: v("--bg", "#1a1c13") };
-    sheet.current = { ...trace(region), shade: hillshade(region, rgb(v("--topo-light", "#d8d3a8")), rgb(v("--topo-dark", "#05060a"))) };
+    const ink = {
+      minor: v("--topo-minor", "#7f8455"),
+      index: v("--topo-index", "#a6a476"),
+      label: v("--topo-label", "#9c9a70"),
+      paper: v("--bg", "#1a1c13"),
+      water: v("--topo-water", "#6f9488"),
+      road: v("--topo-road", "#d2c494"),
+      built: v("--topo-built", "#c4bd8c"),
+      place: v("--topo-place", "#e4dfba"),
+    };
+    sheet.current = { ...trace(region), ...traceFeatures(region.features), shade: hillshade(region, rgb(v("--topo-light", "#d8d3a8")), rgb(v("--topo-dark", "#05060a"))) };
     const c = canvas.current;
     const ctx = c.getContext("2d");
+    // built-up areas: a fine diagonal hatch, the printed-map shorthand for "town"
+    const tile = document.createElement("canvas");
+    tile.width = tile.height = 4;
+    const t = tile.getContext("2d");
+    t.strokeStyle = ink.built;
+    t.lineWidth = 1;
+    t.beginPath();
+    t.moveTo(-1, 5);
+    t.lineTo(5, -1);
+    t.stroke();
+    const hatch = ctx.createPattern(tile, "repeat");
+    let placeCache = { scale: 0, list: [] };
 
     paint.current = () => {
       const { cols, rows } = region;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = c.clientWidth;
+      const h = c.clientHeight;
       const scale = Math.max(w / cols, h / rows) * OVERSCAN * view.current.zoom; // px per grid cell
       const [px, py] = view.current.pan;
-      const ox = -(cols * scale - w) * px;
-      const oy = -(rows * scale - h) * py;
-      view.current.geo = { scale, ox, oy, w, h, cols, rows };
       const dpr = Math.min(2, window.devicePixelRatio || 1);
+      // snap to whole device pixels: sub-pixel offsets make the hairlines shimmer while panning
+      const ox = Math.round(-(cols * scale - w) * px * dpr) / dpr;
+      const oy = Math.round(-(rows * scale - h) * py * dpr) / dpr;
+      view.current.geo = { scale, ox, oy, w, h, cols, rows };
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
       // relief
@@ -168,13 +264,10 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
       ctx.font = '600 10px "Cascadia Code", Consolas, monospace';
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const placed = [];
       for (const l of sheet.current.labels) {
         const x = ox + l.x * scale;
         const y = oy + l.y * scale;
-        if (x < 30 || y < 20 || x > w - 30 || y > h - 20) continue;
-        if (placed.some(([px2, py2]) => Math.abs(px2 - x) < 170 && Math.abs(py2 - y) < 90)) continue;
-        placed.push([x, y]);
+        if (x < -40 || y < -20 || x > w + 40 || y > h + 20) continue;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(l.angle);
@@ -188,19 +281,117 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
         ctx.fillText(l.text, 0, 0.5);
         ctx.restore();
       }
+      // the real map: water, towns, rivers, railways, roads (paths in grid units; widths in px,
+      // thickening a little as you zoom in so the roads read like a closer map sheet)
+      const f = sheet.current.paths;
+      if (f.water) {
+        const z = Math.sqrt(view.current.zoom);
+        const px = (n) => (n * z) / scale;
+        ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
+        ctx.lineCap = "round";
+        ctx.fillStyle = ink.water;
+        ctx.globalAlpha = 0.22;
+        ctx.fill(f.water, "evenodd");
+        ctx.globalAlpha = 0.45;
+        ctx.strokeStyle = ink.water;
+        ctx.lineWidth = px(0.8);
+        ctx.stroke(f.water);
+        hatch.setTransform(new DOMMatrix([1 / scale, 0, 0, 1 / scale, 0, 0]));
+        ctx.fillStyle = hatch;
+        ctx.globalAlpha = 0.32;
+        ctx.fill(f.built, "evenodd");
+        ctx.fill(f.blocks);
+        ctx.fillStyle = ink.built;
+        ctx.globalAlpha = 0.07;
+        ctx.fill(f.built, "evenodd");
+        ctx.globalAlpha = 0.28;
+        ctx.fill(f.blocks);
+        ctx.strokeStyle = ink.built;
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = px(0.6);
+        ctx.stroke(f.built);
+        ctx.strokeStyle = ink.water;
+        ctx.globalAlpha = 0.28;
+        ctx.lineWidth = px(0.6);
+        ctx.stroke(f.streams);
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = px(1.5);
+        ctx.stroke(f.rivers);
+        ctx.strokeStyle = ink.road;
+        ctx.globalAlpha = 0.4;
+        ctx.lineWidth = px(0.9);
+        ctx.setLineDash([px(5), px(3)]);
+        ctx.stroke(f.rail);
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.32;
+        ctx.lineWidth = px(0.8);
+        ctx.stroke(f.minor);
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = px(1.5);
+        ctx.stroke(f.major);
+        // place names with a paper halo, chosen once per scale
+        if (placeCache.scale !== scale) placeCache = { scale, list: choosePlaces(sheet.current.places, scale, ctx) };
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.lineJoin = "round";
+        for (const p of placeCache.list) {
+          const x = Math.round(ox + p.x * scale);
+          const y = Math.round(oy + p.y * scale);
+          if (x < -120 || y < -30 || x > w + 120 || y > h + 30) continue;
+          const text = p.rank === 0 ? p.n.toUpperCase() : p.n;
+          ctx.font = PLACE_FONT[p.rank];
+          ctx.letterSpacing = p.rank === 0 ? "1.5px" : "0px";
+          ctx.globalAlpha = 0.85;
+          ctx.fillStyle = ink.place;
+          if (p.rank === 0) ctx.fillRect(x - 2.5, y - 2.5, 5, 5);
+          else {
+            ctx.beginPath();
+            ctx.arc(x, y, p.rank === 1 ? 2.2 : 1.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.strokeStyle = ink.paper;
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.8;
+          ctx.strokeText(text, x, y - 7);
+          ctx.globalAlpha = p.rank === 2 ? 0.6 : 0.8;
+          ctx.fillText(text, x, y - 7);
+        }
+        ctx.letterSpacing = "0px";
+      }
+      // visibility, and (behind the interface) the fade under the page header: painted in rather than
+      // a CSS mask/opacity, which can flash unmasked for a frame while the canvas redraws
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const { strength: alpha, explore: open } = look.current;
+      if (!open) {
+        const fade = ctx.createLinearGradient(0, 90, 0, 220);
+        fade.addColorStop(0, "rgba(0,0,0,0)");
+        fade.addColorStop(1, `rgba(0,0,0,${alpha})`);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "destination-in";
+        ctx.fillStyle = fade;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = "source-over";
+      }
       ctx.globalAlpha = 1;
     };
 
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      c.width = Math.round(window.innerWidth * dpr);
-      c.height = Math.round(window.innerHeight * dpr);
+      c.width = Math.round(c.clientWidth * dpr);
+      c.height = Math.round(c.clientHeight * dpr);
       paint.current();
     };
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
   }, [region]);
+
+  // visibility setting or explore toggled: same view, repainted
+  useEffect(() => {
+    look.current = { strength, explore };
+    paint.current();
+  }, [strength, explore]);
 
   // a new page: pan to its part of the sheet
   useEffect(() => {
@@ -321,7 +512,7 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
 
   return (
     <>
-      <canvas ref={canvas} className={`topo-backdrop ${explore ? "exploring" : ""}`} style={{ opacity: explore ? 1 : strength }} aria-hidden={!explore} />
+      <canvas ref={canvas} className={`topo-backdrop ${explore ? "exploring" : ""}`} aria-hidden={!explore} />
       {explore && region && (
         <div className="explore-ui">
           <div className="explore-title">

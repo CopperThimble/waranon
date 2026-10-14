@@ -52,7 +52,11 @@ export default function MapControl({ topo, onExplore }) {
                 <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noreferrer">
                   AWS Terrain Tiles
                 </a>{" "}
-                open dataset (mostly NASA SRTM), drawn as contours here.
+                open dataset (mostly NASA SRTM), drawn as contours here. Roads, rivers, towns and built-up areas ©{" "}
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+                  OpenStreetMap contributors
+                </a>
+                , ODbL.
               </span>
             </div>
           )}

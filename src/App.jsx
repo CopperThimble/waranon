@@ -17,19 +17,18 @@ import UnitsPage from "./pages/UnitsPage";
 import VoicesPage from "./pages/VoicesPage";
 import { ProjectProvider } from "./state/ProjectContext";
 import { useProject } from "./state/useProject";
-import { useUiVersion } from "./state/useUiVersion";
 
 const PAGES = [
-  { id: "overview", label: "Overview", icon: "◎", component: ProjectPage },
-  { id: "alliances", label: "Alliances", icon: "⚑", component: AlliancesPage, count: (p) => p.alliances.length },
-  { id: "nations", label: "Nations", icon: "⚐", component: NationsPage, count: (p) => p.nations.length },
-  { id: "units", label: "Units", icon: "▣", component: UnitsPage, count: (p) => p.units.length },
-  { id: "abilities", label: "Abilities", icon: "✦", component: AbilitiesPage, count: (p) => (p.abilities || []).length },
-  { id: "voices", label: "Voices", icon: "♪", component: VoicesPage, count: (p) => p.nations.reduce((n, x) => n + (x.voice?.clips?.length || 0), 0) },
-  { id: "divisions", label: "Divisions", icon: "◆", component: DivisionsPage, count: (p) => p.divisions.length },
-  { id: "balance", label: "Balance", icon: "⚖", component: BalancePage },
-  { id: "export", label: "Export", icon: "⇩", component: ExportPage },
-  { id: "gallery", label: "Gallery", icon: "▦", component: GalleryPage },
+  { id: "overview", label: "Overview", component: ProjectPage },
+  { id: "alliances", label: "Alliances", component: AlliancesPage, count: (p) => p.alliances.length },
+  { id: "nations", label: "Nations", component: NationsPage, count: (p) => p.nations.length },
+  { id: "units", label: "Units", component: UnitsPage, count: (p) => p.units.length },
+  { id: "abilities", label: "Abilities", component: AbilitiesPage, count: (p) => (p.abilities || []).length },
+  { id: "voices", label: "Voices", component: VoicesPage, count: (p) => p.nations.reduce((n, x) => n + (x.voice?.clips?.length || 0), 0) },
+  { id: "divisions", label: "Divisions", component: DivisionsPage, count: (p) => p.divisions.length },
+  { id: "balance", label: "Balance", component: BalancePage },
+  { id: "export", label: "Export", component: ExportPage },
+  { id: "gallery", label: "Gallery", component: GalleryPage },
 ];
 
 // Refined interface: the same pages, grouped by what you're doing.
@@ -66,12 +65,9 @@ export default function App() {
 
 function Shell() {
   const { project, saveState } = useProject();
-  const [ui, setUi] = useUiVersion();
-  const refined = ui !== "classic"; // "field" builds on refined
-  const field = ui === "field";
-  const topo = useTopo(field);
+  const topo = useTopo(true);
   const [exploring, setExploring] = useState(false);
-  const exploreOn = field && exploring && topo.settings.show;
+  const exploreOn = exploring && topo.settings.show;
   useEffect(() => {
     if (exploreOn) document.documentElement.dataset.explore = "on";
     else delete document.documentElement.dataset.explore;
@@ -87,9 +83,8 @@ function Shell() {
   const navRef = useRef(null);
   const [marker, setMarker] = useState(null);
 
-  // Field: one marker slides to the active page instead of the highlight jumping
+  // one marker slides to the active page instead of the highlight jumping
   useLayoutEffect(() => {
-    if (!field) return undefined;
     const place = () => {
       const box = navRef.current;
       const active = box?.querySelector("button.active");
@@ -101,7 +96,7 @@ function Shell() {
     place();
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
-  }, [field, page]);
+  }, [page]);
 
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
@@ -119,7 +114,7 @@ function Shell() {
 
   return (
     <div className="shell">
-      {field && topo.settings.show && (
+      {topo.settings.show && (
         <TopoBackdrop
           region={topo.region}
           shift={page}
@@ -130,7 +125,7 @@ function Shell() {
           onPrev={() => stepMap(-1)}
         />
       )}
-      {field && <MapControl topo={topo} onExplore={() => setExploring(true)} />}
+      <MapControl topo={topo} onExplore={() => setExploring(true)} />
       <nav className="sidebar">
         <div className="brand">
           <span className="brand-mark">W</span>
@@ -143,9 +138,8 @@ function Shell() {
           {project.name}
           <SaveIndicator state={saveState} />
         </div>
-        {refined ? (
-          <div className="nav-groups" ref={navRef}>
-            {field && marker && <span className="nav-marker" style={{ transform: `translateY(${marker.y}px)`, height: marker.h }} aria-hidden="true" />}
+        <div className="nav-groups" ref={navRef}>
+            {marker && <span className="nav-marker" style={{ transform: `translateY(${marker.y}px)`, height: marker.h }} aria-hidden="true" />}
             {NAV_GROUPS.map((g) => (
               <div key={g.title || "top"} className="nav-group">
                 {g.title && <div className="nav-group-title">{g.title}</div>}
@@ -169,34 +163,7 @@ function Shell() {
               </div>
             ))}
           </div>
-        ) : (
-          <ul className="nav">
-            {PAGES.map((p) => (
-              <li key={p.id}>
-                <button type="button" className={page === p.id ? "active" : ""} onClick={() => navigate(p.id)}>
-                  <span className="nav-icon">{p.icon}</span>
-                  <span className="nav-label">{p.label}</span>
-                  {p.count && <span className="nav-count">{p.count(project)}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="ui-switch" role="group" aria-label="Interface style">
-          <span className="ui-switch-label">Interface</span>
-          <span className="segmented">
-            <button type="button" className={refined ? "" : "on"} aria-pressed={!refined} onClick={() => setUi("classic")}>
-              Classic
-            </button>
-            <button type="button" className={ui === "refined" ? "on" : ""} aria-pressed={ui === "refined"} onClick={() => setUi("refined")}>
-              Refined
-            </button>
-            <button type="button" className={field ? "on" : ""} aria-pressed={field} onClick={() => setUi("field")}>
-              Field
-            </button>
-          </span>
-        </div>
-        <Credits collapsible={refined} terrain={field} />
+        <Credits />
       </nav>
       <main className="main">
         <Page key={`${project.id}-${page}-${route.id || ""}-${route.tab || ""}`} navigate={navigate} route={route} />

@@ -1,5 +1,6 @@
 // Real terrain for the Field backdrop: height grids built by scripts/build_topo.py from open
-// elevation data (public/data/topo/*.json). Loaded only in the Field interface.
+// elevation data, plus real roads, rivers and towns from OpenStreetMap built by scripts/build_osm.py
+// (public/data/topo/*.json, fetched once at build time).
 
 import { useEffect, useState } from "react";
 
@@ -22,9 +23,13 @@ async function json(path) {
   return cache.get(path);
 }
 
-/** Decode a region file into { ...meta, grid: Uint16Array }. */
+/**
+ * Decode a region file into { ...meta, grid: Uint16Array, features }. features: the region's roads,
+ * rivers, built-up areas and places from OpenStreetMap (scripts/build_osm.py), or null if missing.
+ */
 async function loadRegion(id) {
-  const data = await json(`${id}.json`);
+  const [data, features] = await Promise.all([json(`${id}.json`), json(`${id}.features.json`).catch(() => null)]);
+  data.features = features;
   if (!data.grid) {
     const bin = atob(data.heights);
     const bytes = new Uint8Array(bin.length);

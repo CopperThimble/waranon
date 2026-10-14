@@ -1,8 +1,7 @@
 /*
- * Field interface (sidebar switch "Field"): the refined interface plus a map-desk layer.
- * Builds on refined.css (data-ui="refined" is set too); everything here is scoped to
- * :root[data-flair="field"]. One authored moment (the terrain settling under a new page) and
- * three quiet supporting details. prefers-reduced-motion keeps the look and drops the movement.
+ * Interface layer 2 of 2: the map desk (real terrain backdrop, sliding nav marker, ink stamp on save,
+ * survey-line titles, map-sheet corner marks, explore mode). Builds on refined.css.
+ * prefers-reduced-motion keeps the look and drops the movement.
  */
 
 /* ── Terrain under the work ───────────────────────────────────────────────── */
@@ -13,14 +12,18 @@
   --topo-label: #b9b582;
   --topo-light: #cfcb9c;
   --topo-dark: #000000;
+  --topo-water: #6f9488;
+  --topo-road: #d2c494;
+  --topo-built: #c4bd8c;
+  --topo-place: #e4dfba;
 }
-/* z-index -1 inside the shell's stacking context: under every panel, above the page background */
+/* z-index -1 inside the shell's stacking context: under every panel, above the page background.
+   The fade under the page header and the visibility setting are painted into the canvas itself: a CSS
+   mask or opacity on a canvas that redraws every frame can flash unmasked for a frame on some GPUs. */
 .topo-backdrop { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: -1; }
-/* the sheet fades in below the page header, so titles and descriptions always sit on calm ground */
-:root[data-flair="field"] .topo-backdrop {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 90px, #000 220px);
-  mask-image: linear-gradient(to bottom, transparent 0, transparent 90px, #000 220px);
-}
+/* reserve the scrollbar's space on every page, so switching between short and long pages doesn't jolt
+   the whole layout sideways */
+:root[data-flair="field"] { scrollbar-gutter: stable; }
 /* empty states float on the map: give their text a soft backing */
 :root[data-flair="field"] .empty { background: color-mix(in srgb, var(--bg) 84%, transparent); }
 :root[data-flair="field"] .shell { position: relative; z-index: 1; }
@@ -114,8 +117,7 @@
 :root[data-explore] .main,
 :root[data-explore] .map-control { display: none; }
 :root[data-explore] .topo-backdrop {
-  z-index: 0; pointer-events: auto; cursor: grab; -webkit-mask-image: none; mask-image: none;
-  transition: opacity 300ms ease-out;
+  z-index: 0; pointer-events: auto; cursor: grab;
 }
 :root[data-explore] .topo-backdrop.dragging { cursor: grabbing; }
 .map-explore { justify-self: start; }
