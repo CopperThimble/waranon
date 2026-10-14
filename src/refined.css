@@ -1,7 +1,7 @@
 /*
- * Refined interface (sidebar switch "Interface: Refined"). Every rule is scoped to
- * :root[data-ui="refined"], so the classic look in index.css stays exactly as it was.
- * Same palette and identity; calmer navigation, steadier spacing, consistent states.
+ * Interface layer 1 of 2 (index.html sets data-ui="refined" and data-flair="field" on <html>):
+ * calmer navigation, steadier spacing and consistent states on top of the base styles in index.css.
+ * field.css adds the map-desk layer on top of this.
  */
 
 /* ── Browser surfaces ─────────────────────────────────────────────────────── */
@@ -38,12 +38,7 @@
 :root[data-ui="refined"] .nav button.active .nav-icon { color: var(--accent); }
 :root[data-ui="refined"] .nav-count { background: transparent; color: var(--muted); padding: 0; min-width: 0; font-weight: 500; }
 
-/* the interface switch (shown in every mode): label above three equal options */
-.ui-switch { display: flex; flex-direction: column; gap: 6px; padding: 0 6px; font-size: 12px; color: var(--muted); }
-.ui-switch .segmented { display: flex; }
-.ui-switch .segmented button { flex: 1; padding: 4px 6px; font-size: 12px; }
-:root[data-ui="refined"] .ui-switch { margin-top: auto; }
-:root[data-ui="refined"] .credits { margin-top: 0; padding-top: 10px; }
+:root[data-ui="refined"] .credits { margin-top: auto; padding-top: 10px; }
 :root[data-ui="refined"] .credits summary {
   cursor: pointer; list-style: none; font-size: 12px; color: var(--muted); padding: 2px 0;
 }
