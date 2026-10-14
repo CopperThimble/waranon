@@ -209,7 +209,7 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
       minor: v("--topo-minor", "#7f8455"),
       index: v("--topo-index", "#a6a476"),
       label: v("--topo-label", "#9c9a70"),
-      paper: v("--bg", "#1a1c13"),
+      paper: v("--bg", "#181816"),
       water: v("--topo-water", "#6f9488"),
       road: v("--topo-road", "#d2c494"),
       built: v("--topo-built", "#c4bd8c"),
