@@ -9,6 +9,7 @@ import { coords } from "../lib/topo";
 const DURATION = 700;
 const OVERSCAN = 1.3; // the sheet is drawn larger than the window so there is room to pan
 const MAX_ZOOM = 6;
+const CACHE_PX = 8e6; // largest cached sheet (~32 MB); zoomed further in, moving frames draw directly
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const SEGMENTS = [[], [[3, 2]], [[2, 1]], [[3, 1]], [[0, 1]], [[0, 3], [1, 2]], [[0, 2]], [[0, 3]], [[0, 3]], [[0, 2]], [[0, 1], [2, 3]], [[0, 1]], [[3, 1]], [[2, 1]], [[3, 2]], []];
 
@@ -231,7 +232,132 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
     const hatch = ctx.createPattern(tile, "repeat");
     let placeCache = { scale: 0, list: [] };
 
-    paint.current = () => {
+    // Everything on the sheet, at offset (ox, oy) in px. g is the screen canvas, or the cached sheet
+    // image (drawn once, then slid while the map moves: redrawing thousands of lines every frame
+    // ran at ~5 fps on machines without graphics acceleration).
+    const draw = (g, dpr, ox, oy, w, h, scale) => {
+      const { cols, rows } = region;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    // relief
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
+    g.drawImage(sheet.current.shade, ox, oy, cols * scale, rows * scale);
+    // contours (paths are in grid units; keep hairlines at 1px)
+    g.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
+    g.lineJoin = "round";
+    g.strokeStyle = ink.minor;
+    g.globalAlpha = 0.22;
+    g.lineWidth = 0.8 / scale;
+    g.stroke(sheet.current.minor);
+    g.strokeStyle = ink.index;
+    g.globalAlpha = 0.34;
+    g.lineWidth = 1.3 / scale;
+    g.stroke(sheet.current.index);
+    // elevation labels, spaced out, with the line broken under them like a printed map
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '600 10px "Cascadia Code", Consolas, monospace';
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    for (const l of sheet.current.labels) {
+      const x = ox + l.x * scale;
+      const y = oy + l.y * scale;
+      if (x < -40 || y < -20 || x > w + 40 || y > h + 20) continue;
+      g.save();
+      g.translate(x, y);
+      g.rotate(l.angle);
+      const tw = g.measureText(l.text).width + 6;
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = "destination-out";
+      g.fillRect(-tw / 2, -6, tw, 12);
+      g.globalCompositeOperation = "source-over";
+      g.globalAlpha = 0.5;
+      g.fillStyle = ink.label;
+      g.fillText(l.text, 0, 0.5);
+      g.restore();
+    }
+    // the real map: water, towns, rivers, railways, roads (paths in grid units; widths in px,
+    // thickening a little as you zoom in so the roads read like a closer map sheet)
+    const f = sheet.current.paths;
+    if (f.water) {
+      const z = Math.sqrt(view.current.zoom);
+      const px = (n) => (n * z) / scale;
+      g.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
+      g.lineCap = "round";
+      g.fillStyle = ink.water;
+      g.globalAlpha = 0.22;
+      g.fill(f.water, "evenodd");
+      g.globalAlpha = 0.45;
+      g.strokeStyle = ink.water;
+      g.lineWidth = px(0.8);
+      g.stroke(f.water);
+      hatch.setTransform(new DOMMatrix([1 / scale, 0, 0, 1 / scale, 0, 0]));
+      g.fillStyle = hatch;
+      g.globalAlpha = 0.32;
+      g.fill(f.built, "evenodd");
+      g.fill(f.blocks);
+      g.fillStyle = ink.built;
+      g.globalAlpha = 0.07;
+      g.fill(f.built, "evenodd");
+      g.globalAlpha = 0.28;
+      g.fill(f.blocks);
+      g.strokeStyle = ink.built;
+      g.globalAlpha = 0.3;
+      g.lineWidth = px(0.6);
+      g.stroke(f.built);
+      g.strokeStyle = ink.water;
+      g.globalAlpha = 0.28;
+      g.lineWidth = px(0.6);
+      g.stroke(f.streams);
+      g.globalAlpha = 0.55;
+      g.lineWidth = px(1.5);
+      g.stroke(f.rivers);
+      g.strokeStyle = ink.road;
+      g.globalAlpha = 0.4;
+      g.lineWidth = px(0.9);
+      g.setLineDash([px(5), px(3)]);
+      g.stroke(f.rail);
+      g.setLineDash([]);
+      g.globalAlpha = 0.32;
+      g.lineWidth = px(0.8);
+      g.stroke(f.minor);
+      g.globalAlpha = 0.55;
+      g.lineWidth = px(1.5);
+      g.stroke(f.major);
+      // place names with a paper halo, chosen once per scale
+      if (placeCache.scale !== scale) placeCache = { scale, list: choosePlaces(sheet.current.places, scale, g) };
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.textAlign = "center";
+      g.textBaseline = "alphabetic";
+      g.lineJoin = "round";
+      for (const p of placeCache.list) {
+        const x = Math.round(ox + p.x * scale);
+        const y = Math.round(oy + p.y * scale);
+        if (x < -120 || y < -30 || x > w + 120 || y > h + 30) continue;
+        const text = p.rank === 0 ? p.n.toUpperCase() : p.n;
+        g.font = PLACE_FONT[p.rank];
+        g.letterSpacing = p.rank === 0 ? "1.5px" : "0px";
+        g.globalAlpha = 0.85;
+        g.fillStyle = ink.place;
+        if (p.rank === 0) g.fillRect(x - 2.5, y - 2.5, 5, 5);
+        else {
+          g.beginPath();
+          g.arc(x, y, p.rank === 1 ? 2.2 : 1.6, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.strokeStyle = ink.paper;
+        g.lineWidth = 3;
+        g.globalAlpha = 0.8;
+        g.strokeText(text, x, y - 7);
+        g.globalAlpha = p.rank === 2 ? 0.6 : 0.8;
+        g.fillText(text, x, y - 7);
+      }
+      g.letterSpacing = "0px";
+    }
+    };
+    let cache = null; // { scale, canvas }: the whole sheet at 1 px per CSS px
+
+    paint.current = (moving = false) => {
       const { cols, rows } = region;
       const w = c.clientWidth;
       const h = c.clientHeight;
@@ -242,123 +368,19 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
       const ox = Math.round(-(cols * scale - w) * px * dpr) / dpr;
       const oy = Math.round(-(rows * scale - h) * py * dpr) / dpr;
       view.current.geo = { scale, ox, oy, w, h, cols, rows };
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      // relief
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(sheet.current.shade, ox, oy, cols * scale, rows * scale);
-      // contours (paths are in grid units; keep hairlines at 1px)
-      ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = ink.minor;
-      ctx.globalAlpha = 0.22;
-      ctx.lineWidth = 0.8 / scale;
-      ctx.stroke(sheet.current.minor);
-      ctx.strokeStyle = ink.index;
-      ctx.globalAlpha = 0.34;
-      ctx.lineWidth = 1.3 / scale;
-      ctx.stroke(sheet.current.index);
-      // elevation labels, spaced out, with the line broken under them like a printed map
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.font = '600 10px "Cascadia Code", Consolas, monospace';
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      for (const l of sheet.current.labels) {
-        const x = ox + l.x * scale;
-        const y = oy + l.y * scale;
-        if (x < -40 || y < -20 || x > w + 40 || y > h + 20) continue;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(l.angle);
-        const tw = ctx.measureText(l.text).width + 6;
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.fillRect(-tw / 2, -6, tw, 12);
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = 0.5;
-        ctx.fillStyle = ink.label;
-        ctx.fillText(l.text, 0, 0.5);
-        ctx.restore();
-      }
-      // the real map: water, towns, rivers, railways, roads (paths in grid units; widths in px,
-      // thickening a little as you zoom in so the roads read like a closer map sheet)
-      const f = sheet.current.paths;
-      if (f.water) {
-        const z = Math.sqrt(view.current.zoom);
-        const px = (n) => (n * z) / scale;
-        ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
-        ctx.lineCap = "round";
-        ctx.fillStyle = ink.water;
-        ctx.globalAlpha = 0.22;
-        ctx.fill(f.water, "evenodd");
-        ctx.globalAlpha = 0.45;
-        ctx.strokeStyle = ink.water;
-        ctx.lineWidth = px(0.8);
-        ctx.stroke(f.water);
-        hatch.setTransform(new DOMMatrix([1 / scale, 0, 0, 1 / scale, 0, 0]));
-        ctx.fillStyle = hatch;
-        ctx.globalAlpha = 0.32;
-        ctx.fill(f.built, "evenodd");
-        ctx.fill(f.blocks);
-        ctx.fillStyle = ink.built;
-        ctx.globalAlpha = 0.07;
-        ctx.fill(f.built, "evenodd");
-        ctx.globalAlpha = 0.28;
-        ctx.fill(f.blocks);
-        ctx.strokeStyle = ink.built;
-        ctx.globalAlpha = 0.3;
-        ctx.lineWidth = px(0.6);
-        ctx.stroke(f.built);
-        ctx.strokeStyle = ink.water;
-        ctx.globalAlpha = 0.28;
-        ctx.lineWidth = px(0.6);
-        ctx.stroke(f.streams);
-        ctx.globalAlpha = 0.55;
-        ctx.lineWidth = px(1.5);
-        ctx.stroke(f.rivers);
-        ctx.strokeStyle = ink.road;
-        ctx.globalAlpha = 0.4;
-        ctx.lineWidth = px(0.9);
-        ctx.setLineDash([px(5), px(3)]);
-        ctx.stroke(f.rail);
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 0.32;
-        ctx.lineWidth = px(0.8);
-        ctx.stroke(f.minor);
-        ctx.globalAlpha = 0.55;
-        ctx.lineWidth = px(1.5);
-        ctx.stroke(f.major);
-        // place names with a paper halo, chosen once per scale
-        if (placeCache.scale !== scale) placeCache = { scale, list: choosePlaces(sheet.current.places, scale, ctx) };
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.textAlign = "center";
-        ctx.textBaseline = "alphabetic";
-        ctx.lineJoin = "round";
-        for (const p of placeCache.list) {
-          const x = Math.round(ox + p.x * scale);
-          const y = Math.round(oy + p.y * scale);
-          if (x < -120 || y < -30 || x > w + 120 || y > h + 30) continue;
-          const text = p.rank === 0 ? p.n.toUpperCase() : p.n;
-          ctx.font = PLACE_FONT[p.rank];
-          ctx.letterSpacing = p.rank === 0 ? "1.5px" : "0px";
-          ctx.globalAlpha = 0.85;
-          ctx.fillStyle = ink.place;
-          if (p.rank === 0) ctx.fillRect(x - 2.5, y - 2.5, 5, 5);
-          else {
-            ctx.beginPath();
-            ctx.arc(x, y, p.rank === 1 ? 2.2 : 1.6, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.strokeStyle = ink.paper;
-          ctx.lineWidth = 3;
-          ctx.globalAlpha = 0.8;
-          ctx.strokeText(text, x, y - 7);
-          ctx.globalAlpha = p.rank === 2 ? 0.6 : 0.8;
-          ctx.fillText(text, x, y - 7);
+      if (moving && cols * scale * rows * scale <= CACHE_PX) {
+        if (cache?.scale !== scale) {
+          const off = cache?.canvas || document.createElement("canvas");
+          off.width = Math.ceil(cols * scale);
+          off.height = Math.ceil(rows * scale);
+          draw(off.getContext("2d"), 1, 0, 0, off.width, off.height, scale);
+          cache = { scale, canvas: off };
         }
-        ctx.letterSpacing = "0px";
-      }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(cache.canvas, ox, oy);
+      } else draw(ctx, dpr, ox, oy, w, h, scale);
       // visibility, and (behind the interface) the fade under the page header: painted in rather than
       // a CSS mask/opacity, which can flash unmasked for a frame while the canvas redraws
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -410,7 +432,7 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
       const p = Math.min(1, (now - s.start) / DURATION);
       const e = 1 - Math.pow(1 - p, 4); // decelerate into place
       s.pan = [s.from[0] + (s.to[0] - s.from[0]) * e, s.from[1] + (s.to[1] - s.from[1]) * e];
-      paint.current();
+      paint.current(p < 1);
       if (p < 1) s.raf = requestAnimationFrame(tick);
     };
     s.raf = requestAnimationFrame(tick);
@@ -430,7 +452,7 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
     }
     let frame = 0;
     const repaint = () => {
-      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), paint.current()));
+      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), paint.current(!!drag)));
     };
     // move the sheet so its top-left lands at (ox, oy) in px, within its bounds
     const placeAt = (ox, oy, scale) => {
@@ -471,6 +493,7 @@ export default function TopoBackdrop({ region, shift, strength = 1, explore = fa
       }
     };
     const up = () => {
+      if (drag) paint.current(); // full quality once the drag ends
       drag = null;
       c.classList.remove("dragging");
     };
