@@ -1,5 +1,0 @@
-Analyzing: src/templates/UniteDescriptor.txt
-  \u2192 2485 exports found in UniteDescriptor.txt
-
-Schema written to: C:\Users\savva\waranon-1\ndf_schema.json
-Module types found: 42

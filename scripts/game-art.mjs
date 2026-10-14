@@ -25,7 +25,6 @@ const ART_PATHS = [
   "images/weapons",
   "images/specialties",
   "images/traits",
-  "images/maps",
   "images/warno.png",
   "images/warno-let-loose-transparent.png",
   "images/waryes-transparent.png",
