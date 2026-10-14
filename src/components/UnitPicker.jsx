@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { ROLE_LABELS, facetLabel, unitFacets } from "../lib/labels";
 import { CATEGORIES, allAlliances, allNations, customRef, resolveUnitRef } from "../lib/model";
 import { useProject } from "../state/useProject";
@@ -17,6 +17,7 @@ const TAG_CHIPS_COLLAPSED = 18;
 export default function UnitPicker({ title = "Choose a unit", onPick, onClose, options = {} }) {
   const { game, project } = useProject();
   const [query, setQuery] = useState("");
+  const searched = useDeferredValue(query); // the box keeps up while the result cards catch up
   const [factory, setFactory] = useState(options.factory || "");
   const [allianceId, setAllianceId] = useState(options.side || "");
   const [country, setCountry] = useState("");
@@ -50,7 +51,7 @@ export default function UnitPicker({ title = "Choose a unit", onPick, onClose, o
 
   // Units passing every filter except tags; tag chips are counted from this set.
   const preTag = useMemo(() => {
-    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const words = searched.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const builtin = allianceId === "NATO" || allianceId === "PACT";
     return all.filter((u) => {
       if (options.exclude?.has(u.ref)) return false;
@@ -61,7 +62,7 @@ export default function UnitPicker({ title = "Choose a unit", onPick, onClose, o
       if (role && u.base.role !== role) return false;
       return words.every((w) => u.haystack.includes(w));
     });
-  }, [all, query, factory, allianceId, country, role, options.exclude, options.transportsOnly]);
+  }, [all, searched, factory, allianceId, country, role, options.exclude, options.transportsOnly]);
 
   const results = useMemo(
     () => (tags.size ? preTag.filter((u) => [...tags].every((t) => u.facets.includes(t))) : preTag),

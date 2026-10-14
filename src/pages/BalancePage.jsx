@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { UnitHover } from "../components/UnitCard";
 import { Empty, PageHeader } from "../components/ui";
 import { DlcBadge, NationFlag, SpecIcon } from "../components/visuals";
@@ -17,6 +17,7 @@ export default function BalancePage({ navigate }) {
   const { game, project } = useProject();
   const model = useCostModel();
   const [query, setQuery] = useState("");
+  const searched = useDeferredValue(query); // the box keeps up while the table catches up
   const [factory, setFactory] = useState("");
   const [role, setRole] = useState("");
   const [side, setSide] = useState("");
@@ -46,7 +47,7 @@ export default function BalancePage({ navigate }) {
   }, [model, game, project]);
 
   const rows = useMemo(() => {
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const words = searched.toLowerCase().split(/\s+/).filter(Boolean);
     const keep = (r) =>
       (!factory || r.base.factory === factory) &&
       (!role || r.base.role === role) &&
@@ -67,7 +68,7 @@ export default function BalancePage({ navigate }) {
     };
     // your own units always come first
     return [...customRows.filter(keep).sort(cmp), ...vanillaRows.filter(keep).sort(cmp)];
-  }, [vanillaRows, customRows, query, factory, role, side, verdict, content, sort]);
+  }, [vanillaRows, customRows, searched, factory, role, side, verdict, content, sort]);
 
   const roles = useMemo(
     () => [...new Set(vanillaRows.filter((r) => !factory || r.base.factory === factory).map((r) => r.base.role))].sort(),
