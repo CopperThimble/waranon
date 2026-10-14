@@ -22,6 +22,7 @@ import {
   isOnTick,
   snapToTick,
   STATS,
+  isAircraft,
   allAlliances,
   allNations,
   isCustomRef,
@@ -111,6 +112,10 @@ export function validateProject(project, game) {
         const max = game.hardLimits[base.armorFamily] || 1;
         if (!Number.isInteger(v) || v < 1 || v > max)
           err("unit", u.id, `${label}: ${stat.label} armor must be a whole number 1–${max} (game table size).`, stat.tab);
+        continue;
+      }
+      if (stat.airOnly && !isAircraft(base) && v !== 0) {
+        warn("unit", u.id, `${label}: ${stat.label} on a ground unit. No vanilla ground unit has it; the game stores the value, but it's untested in game and the points model won't price it.`, stat.tab);
         continue;
       }
       const r = ranges[stat.key];
@@ -226,6 +231,31 @@ function validateWeapons(u, base, label, game, err, warn) {
   // Added weapons need a depiction to clone (muzzle flash / firing sound / what the soldier holds).
   const withAdded = normalizeWeapons(loadout, ov);
   const kind = addKind(game, base);
+  /** Edited ammo stats: hard limits are errors, values outside the vanilla range are warnings. */
+  function checkAmmoStats(stats, ammo, where) {
+    const ranges = game.ammoRanges[ammo.category] || {};
+    for (const stat of AMMO_STATS) {
+      const v = stats?.[stat.key];
+      if (v == null || v === ammo.stats[stat.key]) continue;
+      if (!Number.isFinite(v)) {
+        err("unit", u.id, `${where}: ${stat.label} must be a number.`);
+        continue;
+      }
+      if (!stat.decimals && !stat.power && !Number.isInteger(v)) err("unit", u.id, `${where}: ${stat.label} must be a whole number.`);
+      if (stat.tick && !isOnTick(v)) err("unit", u.id, `${where}: ${stat.label} ${v}s must be a multiple of the 0.1 s game tick (e.g. ${snapToTick(v).toFixed(1)}).`);
+      if (v < (stat.hardMin ?? 0)) err("unit", u.id, `${where}: ${stat.label} can't be below ${stat.hardMin ?? 0}.`);
+      if (stat.hardMax != null && v > stat.hardMax) err("unit", u.id, `${where}: ${stat.label} can't exceed ${stat.hardMax}.`);
+      if (stat.power) {
+        const max = game.hardLimits[ammo.family] || 1;
+        if (!Number.isInteger(v) || v < 1 || v > max)
+          err("unit", u.id, `${where}: power must be a whole number 1–${max} for ${ammo.family?.replace("DamageFamily_", "")} weapons (game table size).`);
+        continue;
+      }
+      const r = ranges[stat.key];
+      if (r && (v < r.min || v > r.max)) warn("unit", u.id, `${where}: ${stat.label} ${v} is outside the vanilla range for this weapon class (${r.min}–${r.max}).`);
+    }
+  }
+
   for (const a of withAdded.added || []) {
     const ammo = game.ammo[a.ammo];
     const where = `${label}: added ${a.role ? "soldier role" : a.coax ? "coaxial weapon" : "weapon"} ${ammo?.name || a.ammo}`;
@@ -234,6 +264,7 @@ function validateWeapons(u, base, label, game, err, warn) {
       err("unit", u.id, `${where}: ammunition not found in game data.`);
       continue;
     }
+    checkAmmoStats(a.stats, ammo, where);
     if (!kind) {
       err("unit", u.id, `${where}: this unit has no 3D depiction the builder can copy, so it can't take new weapons.`);
       continue;
@@ -304,26 +335,6 @@ function validateWeapons(u, base, label, game, err, warn) {
     }
     if (m.ammo && m.ammo !== original.ammo && game.ammo[original.ammo]?.category !== ammo.category)
       warn("unit", u.id, `${where}: swapped to a different weapon class (${ammo.category?.replace("MinMax_", "")}); firing effects stay those of the original gun.`);
-    const ranges = game.ammoRanges[ammo.category] || {};
-    for (const stat of AMMO_STATS) {
-      const v = m.stats?.[stat.key];
-      if (v == null || v === ammo.stats[stat.key]) continue;
-      if (!Number.isFinite(v)) {
-        err("unit", u.id, `${where}: ${stat.label} must be a number.`);
-        continue;
-      }
-      if (!stat.decimals && !stat.power && !Number.isInteger(v)) err("unit", u.id, `${where}: ${stat.label} must be a whole number.`);
-      if (stat.tick && !isOnTick(v)) err("unit", u.id, `${where}: ${stat.label} ${v}s must be a multiple of the 0.1 s game tick (e.g. ${snapToTick(v).toFixed(1)}).`);
-      if (v < (stat.hardMin ?? 0)) err("unit", u.id, `${where}: ${stat.label} can't be below ${stat.hardMin ?? 0}.`);
-      if (stat.hardMax != null && v > stat.hardMax) err("unit", u.id, `${where}: ${stat.label} can't exceed ${stat.hardMax}.`);
-      if (stat.power) {
-        const max = game.hardLimits[ammo.family] || 1;
-        if (!Number.isInteger(v) || v < 1 || v > max)
-          err("unit", u.id, `${where}: power must be a whole number 1–${max} for ${ammo.family?.replace("DamageFamily_", "")} weapons (game table size).`);
-        continue;
-      }
-      const r = ranges[stat.key];
-      if (r && (v < r.min || v > r.max)) warn("unit", u.id, `${where}: ${stat.label} ${v} is outside the vanilla range for this weapon class (${r.min}–${r.max}).`);
-    }
+    checkAmmoStats(m.stats, ammo, where);
   }
 }

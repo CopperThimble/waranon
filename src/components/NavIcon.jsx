@@ -8,7 +8,6 @@ const PATHS = {
       <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
     </>
   ),
-  alliances: <path d="M5 21V4h11l-2 4 2 4H5" />,
   nations: (
     <>
       <circle cx="12" cy="12" r="8.5" />

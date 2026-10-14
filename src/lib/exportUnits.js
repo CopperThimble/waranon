@@ -309,7 +309,8 @@ export function patchWeaponBlock(block, override, ammoFor, onFail, plan = { extr
 
 /**
  * Copy an ammunition block under a new name and apply stat overrides.
- * look: { impact: MimeticImpactMapping key (impact FX + sound), icon: weapon panel texture }.
+ * look: { impact: MimeticImpactMapping key (impact FX + sound), icon: weapon panel texture,
+ *         smoke: SmokeDescriptor.ndf cloud name, or "" for none (undefined = unchanged) }.
  */
 export function cloneAmmoBlock(block, srcId, newId, guid, stats, baseStats, onFail, look = {}) {
   let t = block
@@ -317,6 +318,10 @@ export function cloneAmmoBlock(block, srcId, newId, guid, stats, baseStats, onFa
     .replace(/(DescriptorId\s*=\s*)GUID:\{[^}]*\}/, `$1GUID:{${guid}}`);
   if (look.impact) t = t.replace(/(ImpactHappening\s*=\s*)'[^']*'/, `$1'${look.impact}'`);
   if (look.icon) t = t.replace(/(InterfaceWeaponTexture\s*=\s*)"[^"]*"/, `$1"${look.icon}"`);
+  if (look.smoke !== undefined) {
+    if (!/SmokeDescriptor\s*=/.test(t)) onFail("smoke");
+    t = t.replace(/(SmokeDescriptor\s*=\s*)\S+/, (_, pre) => pre + (look.smoke ? `$/GFX/Weapon/${look.smoke}` : "nil"));
+  }
   return applyPatchers(t, AMMO_PATCHERS, stats, baseStats, onFail);
 }
 
@@ -417,7 +422,7 @@ function mountedFrom(template, a, n) {
   const ammoTail = a.ammo.replace(/^Ammo_/, "");
   return template
     .replace(/(AmmoBoxIndex\s*=\s*)\d+/, `$1${a.box}`)
-    .replace(/(Ammunition\s*=\s*\$\/GFX\/Weapon\/)\w+/, `$1${a.ammo}`)
+    .replace(/(Ammunition\s*=\s*\$\/GFX\/Weapon\/)\w+/, `$1${a.ammoRef || a.ammo}`) // ammoRef: edited copy
     .replace(/(EffectTag\s*=\s*)"[^"]*"/, `$1"FireEffect_${ammoTail}"`)
     .replace(/(HandheldEquipmentKey\s*=\s*)"[^"]*"/, `$1"WeaponAlternative_${n}"`)
     .replace(/(NbWeapons\s*=\s*)\d+/, `$1${Math.max(1, Math.round(a.count || 1))}`)

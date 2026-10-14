@@ -382,32 +382,37 @@ export async function buildModFiles({ project, game, source }) {
         );
         const ov = r.unit.weapons || {};
         const fail = (what) => warnings.push({ scope: "unit", id: r.unit.id, message: `${r.unit.name}: couldn't apply ${what}.` });
+        // Edited ammo (stats or look): clone it under a unit-specific name so other units keep the original.
+        const editedAmmo = (src, edits, cloneId, where) => {
+          const stats = edits?.stats && Object.keys(edits.stats).length ? edits.stats : null;
+          const look = edits?.look && Object.keys(edits.look).length ? edits.look : null;
+          if (!stats && !look) return src;
+          const file = ammoFile(src);
+          const aText = working.get(file).text;
+          const aSpan = findTopLevelBlock(aText, src);
+          if (!aSpan) {
+            fail(`edited ammo for ${where} (${src} not found)`);
+            return src;
+          }
+          ammoBlocks[file].push(
+            cloneAmmoBlock(aText.slice(aSpan.start, aSpan.end), src, cloneId, guidFrom(`${r.unit.guid}:${cloneId}`), stats || {}, game.ammo[src]?.stats, (key) =>
+              fail(`ammo ${key} on ${where}`), look || {},
+            ),
+          );
+          return cloneId;
+        };
         let weaponBlock = patchWeaponBlock(renamed, ov, (ti, mi, current) => {
             const mo = ov.mounted?.[`${ti}.${mi}`];
-            const src = mo?.ammo || current;
-            const stats = mo?.stats && Object.keys(mo.stats).length ? mo.stats : null;
-            const look = mo?.look && Object.keys(mo.look).length ? mo.look : null;
-            if (!stats && !look) return src;
-            // Edited ammo: clone it under a unit-specific name so other units keep the original.
-            const cloneId = `Ammo_${r.stem}_T${ti + 1}W${mi + 1}`;
-            const file = ammoFile(src);
-            const aText = working.get(file).text;
-            const aSpan = findTopLevelBlock(aText, src);
-            if (!aSpan) {
-              fail(`edited ammo for weapon ${ti + 1}.${mi + 1} (${src} not found)`);
-              return src;
-            }
-            ammoBlocks[file].push(
-              cloneAmmoBlock(aText.slice(aSpan.start, aSpan.end), src, cloneId, guidFrom(`${r.unit.guid}:${cloneId}`), stats || {}, game.ammo[src]?.stats, (key) =>
-                fail(`ammo ${key} on weapon ${ti + 1}.${mi + 1}`), look || {},
-              ),
-            );
-            return cloneId;
+            return editedAmmo(mo?.ammo || current, mo, `Ammo_${r.stem}_T${ti + 1}W${mi + 1}`, `weapon ${ti + 1}.${mi + 1}`);
           }, fail, boxPlan(loadout, ov));
         if (added.length) {
           // new weapons take the slot numbers after the highest existing one
           const maxSlot = Math.max(0, ...loadout.turrets.flatMap((t) => t.mounted.map((m) => m.slot || 0)));
-          const plan = added.map((a, i) => ({ a, n: maxSlot + i + 1, donor: a.role ? game.infantryWeapons?.[a.ammo] : null }));
+          const plan = added.map((a, i) => ({
+            a: { ...a, ammoRef: editedAmmo(a.ammo, a, `Ammo_${r.stem}_N${maxSlot + i + 1}`, `added weapon ${i + 1}`) },
+            n: maxSlot + i + 1,
+            donor: a.role ? game.infantryWeapons?.[a.ammo] : null,
+          }));
           weaponBlock = addWeaponsToBlock(weaponBlock, loadout, plan);
           if (depKey) depictionJobs.push({ r, kind, key: kind === "infantry" ? r.base.squadKey : r.base.blackHoleKey, newKey: depKey, plan });
         }

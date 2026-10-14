@@ -70,12 +70,18 @@ tank.iconAssetId = "icon1";
 const inf = newUnit(game.unitsById.get("Descriptor_Unit_Rifles_US"), "RUR");
 inf.name = "Rur Grenadiers";
 inf.stats = { cp: 50 };
+// a new soldier role (own ammo box) whose ammo is edited: the role must fire an edited copy
+inf.weapons = {
+  extraBoxes: [10],
+  added: [{ id: "r1", role: true, turret: null, coax: false, ammo: "Ammo_MMG_M60_7_62mm", count: 1, box: 4, fx: null, stats: { range: 900 } }],
+};
 // Weapons: more main-gun ammo, faster turret, hotter AP round, MG swapped for a .50 cal
 tank.weapons = {
   salves: { 0: 50 },
   turrets: { 0: { rotationSpeed: 75 } },
   mounted: {
     "0.0": { stats: { power: 36, range: 2450, accuracy: 70 } },
+    "1.0": { look: { smoke: "Descriptor_Smoke_Fumi81mm" } }, // coax MG that leaves 81 mm smoke
     "2.0": { ammo: "Ammo_HMG_12_7_mm_M2HB" },
   },
 };
@@ -155,6 +161,16 @@ for (const [k, ok] of Object.entries(voiceChecks)) console.log(`voice: ${k}: ${o
 if (Object.values(voiceChecks).some((ok) => !ok)) process.exit(1);
 console.log(namesOk ? "custom names: OK" : `custom names: FAILED\n${JSON.stringify(byPath[namesCsvPath])}`);
 if (!namesOk) process.exit(1);
+// smoke cloud on an edited ammo clone
+const ammoOut = Object.entries(byPath).filter(([p]) => /Gfx\/Ammunition(Missiles)?\.ndf$/.test(p)).map(([, d]) => d).join("\n");
+const smokeOk = /Ammo_\w+_T2W1 is TAmmunitionDescriptor[\s\S]*?SmokeDescriptor\s*=\s*\$\/GFX\/Weapon\/Descriptor_Smoke_Fumi81mm/.test(ammoOut);
+console.log(smokeOk ? "smoke cloud: OK" : "smoke cloud: FAILED");
+if (!smokeOk) process.exit(1);
+const weaponsOut = Object.entries(byPath).find(([p]) => p.endsWith("Gfx/WeaponDescriptor.ndf"))?.[1] || "";
+const addedClone = ammoOut.match(/(Ammo_\w+_N\d+) is TAmmunitionDescriptor[\s\S]*?MaximumRangeGRU\s*=\s*900\b/);
+const addedOk = !!addedClone && weaponsOut.includes(`Ammunition = $/GFX/Weapon/${addedClone[1]}`);
+console.log(addedOk ? "edited added weapon: OK" : "edited added weapon: FAILED");
+if (!addedOk) process.exit(1);
 console.log(`warnings: ${first.warnings.length}`);
 for (const w of first.warnings) console.log("  -", w.message);
 

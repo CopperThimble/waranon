@@ -206,7 +206,7 @@ textarea.input { resize: vertical; }
 /* ── Overview ──────────────────────────────────────────────────────────── */
 .overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; }
 .overview-grid .card > * + * { margin-top: 12px; }
-.counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .count { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-2); }
 .count:hover { border-color: var(--accent); }
 .count-n { font-size: 22px; font-weight: 700; color: var(--accent-2); }
@@ -676,3 +676,29 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .fires-like { display: inline-flex; align-items: center; gap: 6px; min-width: 260px; flex: 1; }
 .fires-like .search-select { flex: 1; }
 .look-grid .search-select-pop { min-width: 380px; }
+
+/* firing arcs, floating while the inline diagram is scrolled away (WeaponsEditor) */
+.arcs-float {
+  position: fixed; right: 18px; bottom: 18px; z-index: 25; width: min(420px, calc(100vw - 36px)); padding: 10px 12px 12px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow);
+  animation: arcs-float-in 180ms ease-out both;
+}
+.arcs-float-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text); }
+.arcs-float-head .link { font-size: 12px; font-weight: 500; }
+.arcs-float .arcs { gap: 8px; }
+.arcs-float .arcs figure { padding: 6px; }
+@keyframes arcs-float-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .arcs-float { animation: none; } }
+.ammo-tag { margin-left: 6px; padding: 0 5px; border: 1px solid var(--line-2); border-radius: 3px; font-size: 10.5px; color: var(--muted); }
+
+/* weapon picture doubles as the ammo selector (WeaponsEditor) */
+.weapon-swap {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; padding: 0; border: 0; background: none;
+  color: var(--muted); font: inherit; cursor: pointer;
+}
+.weapon-swap .weapon-icon { box-sizing: content-box; outline: 1px solid transparent; transition: outline-color 120ms ease-out; }
+.weapon-swap:hover .weapon-icon, .weapon-swap:focus-visible .weapon-icon { outline-color: var(--accent); }
+.weapon-swap:focus-visible { outline: none; }
+.weapon-swap-label { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+.weapon-swap:hover .weapon-swap-label, .weapon-swap:focus-visible .weapon-swap-label { color: var(--text); }
+.weapon-icon-empty { display: grid; place-items: center; font-size: 10.5px; color: var(--paper-ink); }

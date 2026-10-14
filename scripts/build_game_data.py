@@ -289,6 +289,8 @@ def extract_ammo(paths, loc):
                 "category": tail(sym(get_field(val, "MinMaxCategory"))),
                 "family": tail(sym(get_field(arme, "Family"))) if arme else None,
                 "indirect": sym(get_field(val, "TirIndirect")) == "True",
+                # smoke cloud left where the round lands (SmokeDescriptor.ndf), or None
+                "smoke": tail(sym(get_field(val, "SmokeDescriptor"))) if sym(get_field(val, "SmokeDescriptor")) not in (None, "nil") else None,
                 "projectile": tail(sym(get_field(val, "ProjectileType"))),
                 "impact": sym(get_field(val, "ImpactHappening")),  # key in MimeticImpactMapping (impact FX + sound)
                 "icon": sym(get_field(val, "InterfaceWeaponTexture")),  # weapon picture in the unit panel
@@ -316,6 +318,17 @@ def extract_ammo(paths, loc):
                 },
             }
     return ammo
+
+
+def extract_smoke_clouds(path):
+    """Smoke clouds an ammo can leave: { Descriptor_Smoke_Fumi81mm: { radius: GRU, seconds } }."""
+    text = path.read_text(encoding="utf-8")
+    clouds = {}
+    for m in re.finditer(r"export (Descriptor_Smoke_\w+) is TEntityDescriptor(.*?)(?=\nexport |\Z)", text, re.S):
+        radius = re.search(r"RadiusGRU\s*=\s*(\d+)", m.group(2))
+        life = re.search(r"TimeToLive\s*=\s*(\d+)", m.group(2))
+        clouds[m.group(1)] = {"radius": int(radius.group(1)) if radius else None, "seconds": int(life.group(1)) if life else None}
+    return clouds
 
 
 def extract_weapons(path):
@@ -778,6 +791,7 @@ def main():
         "units": units,
         "weapons": {k: v for k, v in weapons.items() if k in used_weapons},
         "ammo": ammo,
+        "smokeClouds": extract_smoke_clouds(gfx / "SmokeDescriptor.ndf"),
         "ammoRanges": build_ammo_ranges(ammo),
         "powerRanges": build_power_ranges(ammo),
         "capacities": extract_capacities(gfx, gen / "Gameplay" / "Effects" / "EffetsSurUnite.ndf"),
