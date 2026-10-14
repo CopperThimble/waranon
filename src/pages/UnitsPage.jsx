@@ -9,7 +9,7 @@ import { cleanGameText } from "../lib/labels";
 import { Button, Empty, Field, ImageUpload, PageHeader, StatControl } from "../components/ui";
 import { DlcBadge, NationFlag, SpecIcon, UnitSpecIcons, UnitThumb } from "../components/visuals";
 import { IMAGE_SPECS, vanillaUnitUrl } from "../lib/images";
-import { CATEGORIES, STATS, allNations, customRef, newId, newToken, newUnit, resolveUnitRef, titleCase } from "../lib/model";
+import { CATEGORIES, STATS, allNations, isAircraft, customRef, newId, newToken, newUnit, resolveUnitRef, titleCase } from "../lib/model";
 import { VANILLA_ABILITIES, presetActive } from "../lib/abilities";
 import { mainSquadWeapon, squadWeaponCount } from "../lib/weapons";
 import { useProject } from "../state/useProject";
@@ -241,10 +241,12 @@ function StatsTab({ unit, base, tab, set }) {
     const out = {};
     for (const s of STATS) {
       if (s.tab !== tab || base.stats[s.key] == null) continue;
+      // aircraft-only stats stay hidden on ground units, unless already changed (so they can be reset)
+      if (s.airOnly && !isAircraft(base) && unit.stats[s.key] == null) continue;
       (out[s.group] ||= []).push(s);
     }
     return out;
-  }, [base, tab]);
+  }, [base, tab, unit.stats]);
 
   const setStat = (key, value) => {
     const stats = { ...unit.stats, [key]: value };

@@ -6,11 +6,9 @@ import TopoBackdrop from "./components/TopoBackdrop";
 import { loadGameData } from "./lib/gameData";
 import { useTopo } from "./lib/topo";
 import AbilitiesPage from "./pages/AbilitiesPage";
-import AlliancesPage from "./pages/AlliancesPage";
 import BalancePage from "./pages/BalancePage";
 import DivisionsPage from "./pages/DivisionsPage";
 import ExportPage from "./pages/ExportPage";
-import GalleryPage from "./pages/GalleryPage";
 import NationsPage from "./pages/NationsPage";
 import ProjectPage from "./pages/ProjectPage";
 import UnitsPage from "./pages/UnitsPage";
@@ -20,7 +18,6 @@ import { useProject } from "./state/useProject";
 
 const PAGES = [
   { id: "overview", label: "Overview", component: ProjectPage },
-  { id: "alliances", label: "Alliances", component: AlliancesPage, count: (p) => p.alliances.length },
   { id: "nations", label: "Nations", component: NationsPage, count: (p) => p.nations.length },
   { id: "units", label: "Units", component: UnitsPage, count: (p) => p.units.length },
   { id: "abilities", label: "Abilities", component: AbilitiesPage, count: (p) => (p.abilities || []).length },
@@ -28,14 +25,15 @@ const PAGES = [
   { id: "divisions", label: "Divisions", component: DivisionsPage, count: (p) => p.divisions.length },
   { id: "balance", label: "Balance", component: BalancePage },
   { id: "export", label: "Export", component: ExportPage },
-  { id: "gallery", label: "Gallery", component: GalleryPage },
 ];
 
 // Refined interface: the same pages, grouped by what you're doing.
 const NAV_GROUPS = [
   { title: null, pages: ["overview"] },
-  { title: "Build", pages: ["alliances", "nations", "units", "abilities", "voices", "divisions"] },
-  { title: "Insight", pages: ["balance", "gallery"] },
+  { title: "Build", pages: ["nations", "units", "abilities", "voices", "divisions"] },
+  // Gallery (pages/GalleryPage.jsx) is hidden: to bring it back, import it, add
+  // { id: "gallery", label: "Gallery", component: GalleryPage } to PAGES and "gallery" here.
+  { title: "Insight", pages: ["balance"] },
   { title: "Ship", pages: ["export"] },
 ];
 

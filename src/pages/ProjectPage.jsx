@@ -9,7 +9,6 @@ export default function ProjectPage({ navigate }) {
   const importInput = useRef(null);
 
   const steps = [
-    { done: project.alliances.length > 0, optional: true, label: "Create an alliance", hint: "Optional: group your nations under a custom banner on the NATO or PACT side.", to: "alliances" },
     { done: project.nations.length > 0, label: "Create a nation", hint: "Country tag, name, flag, and voice lines.", to: "nations" },
     { done: project.units.length > 0, label: "Design units", hint: "Clone any vanilla unit, rename it, rebalance its stats, upload an icon.", to: "units" },
     { done: project.divisions.length > 0, label: "Build a division", hint: "Units only appear in-game inside a division's roster.", to: "divisions" },
@@ -37,7 +36,6 @@ export default function ProjectPage({ navigate }) {
           </Field>
           <div className="counts">
             {[
-              ["Alliances", project.alliances.length, "alliances"],
               ["Nations", project.nations.length, "nations"],
               ["Units", project.units.length, "units"],
               ["Divisions", project.divisions.length, "divisions"],
@@ -81,7 +79,6 @@ export default function ProjectPage({ navigate }) {
                   <button type="button" className="link step-link" onClick={() => navigate(s.to)}>
                     {s.label}
                   </button>
-                  {s.optional && <span className="muted small"> (optional)</span>}
                   <div className="muted small">{s.hint}</div>
                 </div>
               </li>
@@ -129,9 +126,6 @@ export default function ProjectPage({ navigate }) {
               When the game updates, run <code>UpdateMod.bat</code>, then re-export from here.
             </li>
           </ol>
-          <p className="muted small">
-            Only two sides exist in the engine (NATO and PACT). Custom alliances are groupings that fight on one of those sides.
-          </p>
         </section>
       </div>
     </div>

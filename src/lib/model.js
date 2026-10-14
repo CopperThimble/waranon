@@ -36,6 +36,7 @@ export const DIVISION_TYPE_LABELS = {
 };
 
 // Editable unit stats. `tab` picks the editor tab; stats a unit type doesn't have are hidden.
+// airOnly: the engine keeps the field on every unit, but only aircraft ever use it in vanilla.
 export const STATS = [
   { key: "cp", label: "Cost", unit: "pts", tab: "stats", group: "General", step: 5 },
   { key: "soldiers", label: "Squad size", tab: "stats", group: "Squad", step: 1, hardMin: 1, hardMax: 30, special: "squad" },
@@ -47,7 +48,7 @@ export const STATS = [
   { key: "armorSides", label: "Sides", tab: "stats", group: "Armor", step: 1, armor: true },
   { key: "armorRear", label: "Rear", tab: "stats", group: "Armor", step: 1, armor: true },
   { key: "armorTop", label: "Top", tab: "stats", group: "Armor", step: 1, armor: true },
-  { key: "ecm", label: "ECM", tab: "stats", group: "Armor", step: 0.05, decimals: 2, hardMin: -1, hardMax: 0, hint: "Negative = harder to hit (-0.4 is a 40% penalty)" },
+  { key: "ecm", label: "ECM", tab: "stats", group: "Armor", step: 0.05, decimals: 2, hardMin: -1, hardMax: 0, hint: "Negative = harder to hit (-0.4 is a 40% penalty)", airOnly: true },
 
   { key: "speed", label: "Top speed", unit: "km/h", tab: "mobility", group: "Speed & fuel", step: 1 },
   { key: "roadSpeed", label: "Road speed (display only)", unit: "km/h", tab: "mobility", group: "Speed & fuel", step: 1 },
@@ -328,3 +329,6 @@ export function defaultRuleFor(game, project, ref) {
     xp: d ? [...d.xp] : [0, 1, 0.5, 0],
   };
 }
+
+/** Planes and helicopters: the units with no ground movement type. */
+export const isAircraft = (base) => base?.movingType == null;

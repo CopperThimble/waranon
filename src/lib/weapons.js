@@ -107,10 +107,10 @@ export function effectiveMounted(game, loadout, override = {}) {
       added: a,
       turretType: a.role ? "Infanterie" : a.coax ? "TwoAxis" : host?.type,
       original: { ammo: a.ammo, count: a.count, box: a.box, hidden: false },
-      override: {},
+      override: { stats: a.stats, look: a.look }, // edits made in the weapon's Edit panel
       ammoId: a.ammo,
       ammo,
-      stats: { ...(ammo?.stats || {}) },
+      stats: { ...(ammo?.stats || {}), ...(a.stats || {}) },
       box: a.box,
     });
   }
